@@ -1,0 +1,242 @@
+#!/bin/bash
+
+# ----------------------------------------------------------------------
+# | File System                                                        |
+# ----------------------------------------------------------------------
+
+# Create data URI from a file
+
+datauri() {
+
+    local mimeType=""
+
+    if [ -f "$1" ]; then
+        mimeType=$(file -b --mime-type "$1")
+        #                └─ do not prepend the filename to the output
+
+        if [[ $mimeType == text/* ]]; then
+            mimeType="$mimeType;charset=utf-8"
+        fi
+
+        printf "data:%s;base64,%s" \
+                    "$mimeType" \
+                    "$(openssl base64 -in "$1" | tr -d "\n")"
+    else
+        printf "'%s' is not a file.\n" "$1"
+    fi
+
+}
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Delete files that match a certain pattern from the current directory
+
+delete-files() {
+    local q="${1:-*.DS_Store}"
+    find . -type f -name "$q" -ls -delete
+}
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Get gzip information (gzipped file size + reduction size)
+
+gz() {
+
+    declare -i gzippedSize=0
+    declare -i originalSize=0
+
+    if [ -f "$1" ]; then
+        if [ -s "$1" ]; then
+
+            originalSize=$( wc -c < "$1" )
+            printf "\n original size:   %12s\n" "$(hrfs $originalSize)"
+
+            gzippedSize=$( gzip -c "$1" | wc -c )
+            printf " gzipped size:    %12s\n" "$(hrfs $gzippedSize)"
+
+            printf " ─────────────────────────────\n"
+            printf " reduction:       %12s [%s%%]\n\n" \
+                        "$( hrfs $(($originalSize-$gzippedSize)) )" \
+                        "$( printf "%s %s" "$originalSize $gzippedSize" | \
+                            awk '{ printf "%.1f", 100 - $2 * 100 / $1 }' | \
+                            sed -e "s/0*$//;s/\.$//" )"
+                            #              └─ remove tailing zeros
+
+        else
+            printf "'%s' is empty.\n" "$1"
+        fi
+    else
+        printf "'%s' is not a file.\n" "$1"
+    fi
+
+}
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Create new directories and enter the first one
+
+mkd() {
+    if [ -n "$*" ]; then
+        mkdir -p "$@" && cd "$@"
+        #      └─ make parent directories if needed
+    fi
+}
+
+# ----------------------------------------------------------------------
+# | Miscellaneous                                                      |
+# ----------------------------------------------------------------------
+
+# Simple Calculator
+
+? () {
+
+    local result=""
+
+    #                       ┌─ default (when --mathlib is used) is 20
+    result="$( printf "scale=10;%s\n" "$*" | bc --mathlib | tr -d "\\\n" )"
+    #                         remove the tailing "\" and "\n" ─┘
+    #                         (large numbers are printed on multiple lines)
+
+    if [[ "$result" == *.* ]]; then
+        # improve the output for decimal numbers
+        printf "%s" "$result" |
+        sed -e "s/^\./0./"        `# add "0" for cases like ".5"` \
+            -e "s/^-\./-0./"      `# add "0" for cases like "-.5"`\
+            -e "s/0*$//;s/\.$//"   # remove tailing zeros
+    else
+        printf "%s" "$result"
+    fi
+
+    printf "\n"
+
+}
+
+# ----------------------------------------------------------------------
+# | Network                                                            |
+# ----------------------------------------------------------------------
+
+# Start an HTTP server from a directory, optionally specifying the port
+
+server() {
+
+    declare -r MAX_NUMBER_OF_TRIES=10
+    local i=0
+    local port="${1:-8000}"
+
+    # Wait for the server to be available, and once
+    # it is, open its address in the default browser
+    while [ $i -lt $MAX_NUMBER_OF_TRIES ]; do
+        if [ "$(lsof -i -nP | grep "$port" | grep -i "python")" != "" ]; then
+            o "http://localhost:${port}/"
+            break;
+        fi
+        i=$(( i + 1 ))
+        sleep 1
+    done &
+
+    # Start server
+    python -c "
+
+import sys
+
+try:
+    import SimpleHTTPServer as server
+    import SocketServer as socketserver
+except ImportError:
+
+    # In Python 3, the 'SimpleHTTPServer'
+    # module has been merged into 'http.server'
+
+    import http.server as server
+    import socketserver
+
+handler = server.SimpleHTTPRequestHandler
+map = handler.extensions_map
+port = int(sys.argv[1])
+
+# Set default Content-Type to 'text/plain'
+map[''] = 'text/plain'
+
+# Serve everything as UTF-8 (although not technically
+# correct, this doesn't break anything for binary files)
+for key, value in map.items():
+    map[key] = value + '; charset=utf-8'
+
+# Create, but don't automatically bind socket
+# (the 'allow_reuse_address' option needs to be set first)
+httpd = socketserver.ThreadingTCPServer(('localhost', port), handler, False)
+
+# Prevent 'cannot bind to address' errors on restart
+# http://brokenbad.com/address-reuse-in-pythons-socketserver/
+httpd.allow_reuse_address = True
+
+# Manually bind socket and start the server
+httpd.server_bind()
+httpd.server_activate()
+print('Serving content on port:', port)
+httpd.serve_forever()
+
+    " "$port"
+
+}
+
+# ----------------------------------------------------------------------
+# | Search                                                             |
+# ----------------------------------------------------------------------
+
+# Search history
+
+qh() {
+    #           ┌─ enable colors for pipe
+    #           │  ("--color=auto" enables colors only if
+    #           │  the output is in the terminal)
+    grep --color=always "$*" "$HISTFILE" |       less -RX
+    # display ANSI color escape sequences in raw form ─┘│
+    #       don't clear the screen after quitting less ─┘
+}
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Search for text within the current directory
+
+qt() {
+    grep -ir --color=always "$*" . | less -RX
+    #     │└─ search all files under each directory, recursively
+    #     └─ ignore case
+}
+
+# ----------------------------------------------------------------------
+# | Text Processing                                                    |
+# ----------------------------------------------------------------------
+
+# Human redable file size
+# (because `du -h` doesn't cut it for me)
+
+hrfs() {
+
+    printf "%s" "$1" |
+    awk '{
+            i = 1;
+            split("B KB MB GB TB PB EB ZB YB WTFB", v);
+            value = $1;
+
+            # confirm that the input is a number
+            if ( value + .0 == value ) {
+
+                while ( value >= 1024 ) {
+                    value/=1024;
+                    i++;
+                }
+
+                if ( value == int(value) ) {
+                    printf "%d %s", value, v[i]
+                } else {
+                    printf "%.1f %s", value, v[i]
+                }
+
+            }
+        }' |
+    sed -e ":l; s/\([0-9]\)\([0-9]\{3\}\)/\1,\2/; t l"
+    #                          └─ add commas to the numbers
+    #                             (changes "1023.2 KB" to "1,023.2 KB")
+}
