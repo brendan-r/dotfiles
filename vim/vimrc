@@ -32,7 +32,7 @@ call vundle#begin('~/.vim/plugins')
     Plugin 'plasticboy/vim-markdown'
     Plugin 'scrooloose/nerdtree'
     Plugin 'scrooloose/syntastic'
-    Plugin 'shougo/neocomplcache.vim'
+    " Plugin 'shougo/neocomplcache.vim'
     Plugin 'shutnik/jshint2.vim'
     Plugin 'tomtom/tcomment_vim'
     Plugin 'tpope/vim-commentary'
@@ -64,6 +64,31 @@ imap <C-v> <Esc>pi
 smap <C-v> <C-g>p
 smap <Tab> <C-g>1> 
 smap <S-Tab> <C-g>1<
+imap <C-z> <Esc>:u<Enter>i
+imap <C-r> <Esc><C-r><Enter>i
+
+set mouse=a
+set nu
+
+imap <C-a> <Esc>GVggi
+" map <C-n> :enew
+" map <C-o> :e . <Enter>
+" map <C-s> :w <Enter>
+" map <C-c> y
+" map <C-v> p
+" map <C-x> d
+
+" map <C-t> :tabnew <Enter>
+" map <C-i> >>
+" map <C-w> :close <Enter>
+" map <C-W> :q! <Enter>
+" map <C-f> /
+" map <F3> n
+" map <C-h> :%s/
+
+" This should mean that you spend more time in insert mode
+" au BufRead,BufNewFile * start
+startinsert
 
 " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 " These taken from original github repo
@@ -170,7 +195,7 @@ set visualbell                 " ┐
 set noerrorbells               " │ Disable beeping and window flashing
 set t_vb=                      " ┘ https://vim.wikia.com/wiki/Disable_beeping
 
-set wildmenu                   " Enable enhanced command-line
+"set wildmenu                   " Enable enhanced command-line
                                " completion (by hitting <TAB> in
                                " command mode, Vim will show the
                                " possible matches just above the
@@ -395,7 +420,7 @@ let g:vim_markdown_folding_disabled=1
 
 " Enable `neocomplcache` by default
 " https://github.com/Shougo/neocomplcache.vim#installation
-let g:neocomplcache_enable_at_startup=1
+" let g:neocomplcache_enable_at_startup=1
 
 " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
