@@ -20,6 +20,7 @@ call vundle#begin('~/.vim/plugins')
     Plugin 'gmarik/Vundle.vim'
 
     " Plugin 'altercation/vim-colors-solarized'
+    " Plugin 'jiangmiao/auto-pairs'
     Plugin 'chriskempson/vim-tomorrow-theme'
     Plugin 'ap/vim-css-color'
     Plugin 'chrisbra/unicode.vim'
@@ -98,6 +99,12 @@ imap <C-q> <Esc>ZZ
 imap <C-f> <Esc>/
 " map <F3> n
 " imap <C-h> :%s/
+
+" Make vim split over lines when you break in parens
+inoremap {<cr> {<cr>}<c-o>O<tab>
+inoremap [<cr> [<cr>]<c-o>O<tab>
+inoremap (<cr> (<cr>)<c-o>O<tab>
+
 
 " If the current buffer has never been saved, it will have no name,
 " " call the file browser to save it, otherwise just save it.
