@@ -1,6 +1,9 @@
 # Dotfiles
 
-Currently, based very heavily on [Cătălin](https://github.com/alrra)’s dotfiles.
+These are a total mess, and you don't want to use them.
+
+Currently, based very heavily on [Cătălin](https://github.com/alrra)’s
+dotfiles, only chopped around and made worse.
 
 # TODO
 You don't have two OS types, but rather two uses, desktop and server. The
