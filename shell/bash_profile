@@ -87,6 +87,25 @@ main() {
 
 main
 
+
+# ----------------------------------------------------------------------
+# | Vim related: Added by BR                                            |
+# ----------------------------------------------------------------------
+# As per http://vim.wikia.com/wiki/Map_Ctrl-S_to_save_current_or_new_files
+# bash
+# No ttyctl, so we need to save and then restore terminal settings
+vim()
+{
+  # osx users, use stty -g
+  local STTYOPTS="$(stty --save)"
+  stty stop '' -ixoff
+  command vim "$@"
+  stty "$STTYOPTS"
+}
+
+
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Unset functions in order to not pollute the global space

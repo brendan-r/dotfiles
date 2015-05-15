@@ -56,35 +56,61 @@ endif
 
 " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 " These written by BR
+"
+" General wuss settings
 behave mswin
+" Made delete work with selections
 smap <Del> <C-g>"_d
+" Make copy work
 smap <C-c> <C-g>y
+" Make cut work
 smap <C-x> <C-g>x
+" Make paste work
 imap <C-v> <Esc>pi
 smap <C-v> <C-g>p
-smap <Tab> <C-g>1> 
+" Make tab work when shifted
+smap <Tab> <C-g>1>
+" Make reverse-tab work when shifted
 smap <S-Tab> <C-g>1<
+" Make reverse-tab work when not shifted
+imap <S-Tab> <Esc> 1< i
+" Make control z undo (note, this can close a session unexpectedly - rather
+" dangerous!)
 imap <C-z> <Esc>:u<Enter>i
+" Get re-do from insert mode
 imap <C-r> <Esc><C-r><Enter>i
 
 set mouse=a
 set nu
 
-imap <C-a> <Esc>GVggi
+" Make select all work
+imap <C-a> <C-Home><C-S-End>
 " map <C-n> :enew
 " map <C-o> :e . <Enter>
-" map <C-s> :w <Enter>
-" map <C-c> y
-" map <C-v> p
-" map <C-x> d
 
-" map <C-t> :tabnew <Enter>
+" New tab
+imap <C-t> <Esc> :tabnew <Enter> i
 " map <C-i> >>
-" map <C-w> :close <Enter>
+" Close tab
+imap <C-w> <Esc> :close <Enter> i
+imap <C-q> <Esc>ZZ
 " map <C-W> :q! <Enter>
-" map <C-f> /
+imap <C-f> <Esc>/
 " map <F3> n
-" map <C-h> :%s/
+" imap <C-h> :%s/
+
+" If the current buffer has never been saved, it will have no name,
+" " call the file browser to save it, otherwise just save it.
+command -nargs=0 -bar Update if &modified
+   \|    if empty(bufname('%'))
+     \|        browse confirm write
+       \|    else
+         \|        confirm write
+           \|    endif
+             \|endif
+             nnoremap <silent> <C-S> :<C-u>Update<CR>
+
+:inoremap <c-s> <c-o>:Update<CR>
 
 " This should mean that you spend more time in insert mode
 " au BufRead,BufNewFile * start
@@ -105,7 +131,7 @@ colorscheme Tomorrow-Night-Bright
 
 set autoindent                 " Copy indent to the new line
 
-set background=dark            " Use colors that look good
+"set background=dark            " Use colors that look good
                                " on a dark background
 
 set backspace=indent           " ┐
