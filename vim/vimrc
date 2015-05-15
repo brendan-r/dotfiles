@@ -20,7 +20,7 @@ call vundle#begin('~/.vim/plugins')
     Plugin 'gmarik/Vundle.vim'
 
     " Plugin 'altercation/vim-colors-solarized'
-    " Plugin 'jiangmiao/auto-pairs'
+    Plugin 'jiangmiao/auto-pairs'
     Plugin 'chriskempson/vim-tomorrow-theme'
     Plugin 'ap/vim-css-color'
     Plugin 'chrisbra/unicode.vim'
