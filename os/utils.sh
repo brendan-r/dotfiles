@@ -110,3 +110,60 @@ print_success() {
     # Print output in green
     printf "\e[0;32m  [✔] $1\e[0m\n"
 }
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Installation stuff
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+add_key() {
+    wget -qO - "$1" | sudo apt-key add - &> /dev/null
+    #     │└─ write output to file
+    #     └─ don't show output
+}
+
+add_ppa() {
+    sudo add-apt-repository -y ppa:"$1" &> /dev/null
+}
+
+add_software_sources() {
+
+    # Atom
+    [ $(cmd_exists "atom") -eq 1 ] \
+        && add_ppa "webupd8team/atom"
+
+    # NodeJS
+    [ $(cmd_exists "node") -eq 1 ] \
+        && add_ppa "chris-lea/node.js"
+}
+
+add_source_list() {
+    sudo sh -c "printf 'deb $1' >> '/etc/apt/sources.list.d/$2'"
+}
+
+install_package() {
+    local q="${2:-$1}"
+
+    if [ $(cmd_exists "$q") -eq 1 ]; then
+        execute "sudo apt-get install --allow-unauthenticated -qqy $1" "$1"
+        #                                      suppress output ─┘│
+        #            assume "yes" as the answer to all prompts ──┘
+    fi
+}
+
+remove_unneeded_packages() {
+
+    # Remove packages that were automatically installed to satisfy
+    # dependencies for other other packages and are no longer needed
+    execute "sudo apt-get autoremove -qqy" "autoremove"
+
+}
+
+update_and_upgrade() {
+
+    # Resynchronize the package index files from their sources
+    execute "sudo apt-get update -qqy" "update"
+
+    # Unstall the newest versions of all packages installed
+    execute "sudo apt-get upgrade -qqy" "upgrade"
+
+}
