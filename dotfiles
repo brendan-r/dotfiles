@@ -16,56 +16,13 @@ check_os() {
 
     declare -r OS_NAME="$(uname -s)"
 
-    # Check if the OS is OS X and it is above a certain version
-    if [ "$OS_NAME" == "Darwin" ]; then
-        if [ $(compare_versions "$(sw_vers -productVersion)" "10.10") == "<" ]; then
-            printf "Sorry, this script is intended only for OS X 10.10.0+."
-            return 1
-        else
-            return 0
-        fi
-
     # Check if the OS is Ubuntu
-    else
         if [ "$OS_NAME" != "Linux" ] || [ ! -e "/etc/lsb-release" ]; then
-            printf "Sorry, this script is intended only for OS X and Ubuntu!"
+            printf "Sorry, this script is intended only for Ubuntu!"
             return 1
         else
             return 0
         fi
-    fi
-
-}
-
-compare_versions() {
-
-    declare -a v1=(${1//./ })
-    declare -a v2=(${2//./ })
-    local i=""
-
-    # Fill empty positions in v1 with zeros
-    for (( i=${#v1[@]}; i<${#v2[@]}; i++ )); do
-        v1[i]=0
-    done
-
-    for (( i=0; i<${#v1[@]}; i++ )); do
-
-        # Fill empty positions in v2 with zeros
-        if [[ -z ${v2[i]} ]]; then
-            v2[i]=0
-        fi
-
-        if (( 10#${v1[i]} > 10#${v2[i]} )); then
-            printf ">"
-        fi
-
-        if (( 10#${v1[i]} < 10#${v2[i]} )); then
-            printf "<"
-        fi
-
-    done
-
-    printf "="
 }
 
 download() {
@@ -188,7 +145,7 @@ extract() {
 
 main() {
 
-    # Ensure the OS is OS X or Ubuntu
+    # Ensure the OS is Ubuntu
     check_os || exit;
 
     # Ensure that the following actions are made

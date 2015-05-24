@@ -6,22 +6,8 @@
 
 enable_programmable_completion() {
 
-    # Enable programmable completion features
-    # http://tldp.org/LDP/abs/html/tabexpansion.html
-
-    if [ "$OS" == "osx" ]; then
-        if [ -f $(brew --prefix)/share/bash-completion/bash_completion ]; then
-
-            source $(brew --prefix)/share/bash-completion/bash_completion
-
-            # Make bash complete the `g` alias, just like it does `git`
-            complete -o default -o nospace -F _git g
-
-        fi
-    elif [ "$OS" == "ubuntu" ]; then
-        if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
-            source /etc/bash_completion
-        fi
+    if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
+        source /etc/bash_completion
     fi
 
     [ -f "$NVM_DIR/bash_completion" ] \
