@@ -13,60 +13,24 @@ enable_color_support() {
         export TERM="xterm-256color"
     fi
 
-    if [ "$OS" == "osx" ]; then
-        alias ls="ls -G" # or CLICOLOR=1
+    if [ -x /usr/bin/dircolors ]; then
 
-    elif [ "$OS" == "ubuntu" ]; then
-        if [ -x /usr/bin/dircolors ]; then
+        test -r ~/.dircolors \
+            && eval "$(dircolors -b ~/.dircolors)" \
+            || eval "$(dircolors -b)"
 
-            test -r ~/.dircolors \
-                && eval "$(dircolors -b ~/.dircolors)" \
-                || eval "$(dircolors -b)"
+        alias dir="dir --color=auto"
+        alias egrep="egrep --color=auto"
+        alias fgrep="fgrep --color=auto"
+        alias grep="grep --color=auto"
+        alias ls="ls --color=auto"
+        alias vdir="vdir --color=auto"
 
-            alias dir="dir --color=auto"
-            alias egrep="egrep --color=auto"
-            alias fgrep="fgrep --color=auto"
-            alias grep="grep --color=auto"
-            alias ls="ls --color=auto"
-            alias vdir="vdir --color=auto"
-
-        fi
     fi
 
 }
 
 set_ls_colors() {
-
-    # There are several different implementations of color for ls:
-
-    # ------------------------------------------------------------------
-    # | FreeBSD / OS X                                                 |
-    # ------------------------------------------------------------------
-
-    #  - `ls` displays colors if the `-G` option is passed or if
-    #    the `CLICOLOR` environment variable is set
-    #
-    #  - the actual colors are configured through the `LSCOLORS`
-    #    environment variable (built-in defaults are used if this
-    #    variable is not set)
-
-    if [ "$OS" == "osx" ]; then
-
-        LSCOLORS=""
-
-        LSCOLORS+="gx" # Directory
-        LSCOLORS+="fx" # Symbolic link
-        LSCOLORS+="cx" # Socket
-        LSCOLORS+="dx" # Pipe
-        LSCOLORS+="cx" # Executable
-        LSCOLORS+="eg" # Block special
-        LSCOLORS+="ed" # Character special
-        LSCOLORS+="ab" # Executable with setuid bit set
-        LSCOLORS+="ag" # Executable with setgid bit set
-        LSCOLORS+="cc" # Directory writable to others, with sticky bit
-        LSCOLORS+="bd" # Directory writable to others, without sticky bit
-
-        export LSCOLORS
 
     # ------------------------------------------------------------------
     # | GNU                                                            |
@@ -77,8 +41,6 @@ set_ls_colors() {
     #  - the actual colors are configured through the `LS_COLORS`
     #    environment variable (built-in defaults are used if this
     #    variable is not set)
-
-    elif [ "$OS" == "ubuntu" ]; then
 
         LS_COLORS=""
 
@@ -93,7 +55,6 @@ set_ls_colors() {
 
         export LS_COLORS
 
-    fi
 }
 
 # ----------------------------------------------------------------------
