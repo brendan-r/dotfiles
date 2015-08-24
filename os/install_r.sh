@@ -21,5 +21,8 @@ sudo apt-get -y install r-base r-base-dev
 # http://stackoverflow.com/questions/10819959/diagnosing-r-package-build-warning-latex-errors-when-creating-pdf-version
 sudo ln -s /usr/bin/texi2dvi /usr/local/bin/texi2dvi
 
+# These are needed for Cairo graphics to work
+sudo apt-get install -y r-cran-cairodevice libcairo2-dev libxt-dev
+
 # Install your favourite packages
 sudo Rscript install_r_packages.R

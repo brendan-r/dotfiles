@@ -14,7 +14,9 @@ install.packages(
     "NPS",
     "arm",
     "lme4",
-    "RPushbullet"
+    "RPushbullet",
+    "Cairo",
+    "boxr"
   )
 )
 

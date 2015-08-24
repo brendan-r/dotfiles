@@ -23,7 +23,7 @@ call vundle#begin('~/.vim/plugins')
     Plugin 'jiangmiao/auto-pairs'
     Plugin 'bling/vim-airline'
     Plugin 'chriskempson/vim-tomorrow-theme'
-    " Plugin 'crusoexia/vim-monokai'
+    Plugin 'crusoexia/vim-monokai'
     Plugin 'pangloss/vim-javascript'
     Plugin 'crusoexia/vim-javascript-lib'
     Plugin 'ap/vim-css-color'
@@ -71,13 +71,13 @@ smap <C-c> <C-g>y
 " Make cut work
 smap <C-x> <C-g>x
 " Make paste work
-imap <C-v> <Esc>pi
-smap <C-v> <C-g>p
+imap <C-v> <Esc>pi<right>
+smap <C-v> <C-g>p<right>
 " Make tab work when shifted
 smap <Tab> <C-g>1>
 " Make reverse-tab work when shifted
 smap <S-Tab> <C-g>1<
-" Make reverse-tab work when not shifted
+" Make reverse-tab work when shifted
 imap <S-Tab> <Esc> 1< i
 " Make control z undo (note, this can close a session unexpectedly - rather
 " dangerous!)
@@ -140,8 +140,8 @@ set t_Co=256                   " Enable full-color support
     "colorscheme xoria256       " │
 "endif                          " ┘
 
-colorscheme Tomorrow-Night-Bright
-" colorscheme monokai
+" colorscheme Tomorrow-Night-Bright
+colorscheme monokai
 
 set autoindent                 " Copy indent to the new line
 
@@ -157,10 +157,10 @@ set backupdir=~/.vim/backups   " Set directory for backup files
 set backupskip=/tmp/*          " ┐ Don't create backups
 set backupskip+=/private/tmp/* " ┘ for certain files
 
-set clipboard=unnamed          " ┐
+"set clipboard=unnamed          " ┐
                                " │ Use the system clipboard
 " if has('unnamedplus')        " │ as the default register
-    set clipboard+=unnamedplus " │
+set clipboard=unnamedplus      " │
 " endi                         " ┘
 
 set cpoptions+=$               " When making a change, don't
