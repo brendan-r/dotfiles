@@ -2,8 +2,9 @@
 
 # At the time of writing, this is required for git2r, which is required for
 # devtools, which is required for quite a lot of your workflow
-sudo apt-get install libssl-dev
-
+sudo apt-get install libssl-dev libxml2-dev -y
+apt-get -y build-dep libcurl4-gnutls-dev
+apt-get -y install libcurl4-gnutls-dev
 
 sudo add-apt-repository -y "deb http://cran.rstudio.com/bin/linux/ubuntu `lsb_release -cs`/"
 # The Ubuntu archives on CRAN are signed with the key of “Michael Rutter
@@ -13,6 +14,7 @@ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 sudo apt-get update
 
 
+sudo apt-get install mesa-common-dev -y
 
 # Do the actuall install
 sudo apt-get -y install r-base r-base-dev
