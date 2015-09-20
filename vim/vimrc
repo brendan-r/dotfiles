@@ -246,6 +246,9 @@ set winminheight=0             " Allow windows to be squashed
 set t_ut=                      " This should remove background colour problems
                                " with tmux: http://superuser.com/a/562423
 
+set whichwrap+=<,>,[,]         " This should mean that when you press left
+                               " on a line with no characters, the cursor moves
+                               " down: http://superuser.com/a/35421/488410
 
 " ----------------------------------------------------------------------
 " | Helper Functions                                                   |
