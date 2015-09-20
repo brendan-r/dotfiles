@@ -21,6 +21,4 @@ install.packages(
   )
 )
 
-source('http://mc-stan.org/rstan/install.R', echo = TRUE, max.deparse.length = 2000)
-install_rstan()
-
+install.packages("rstan", dependencies = TRUE)
