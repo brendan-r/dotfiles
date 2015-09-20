@@ -243,6 +243,8 @@ set t_vb=                      " ┘ https://vim.wikia.com/wiki/Disable_beeping
                                " match highlighted)
 
 set winminheight=0             " Allow windows to be squashed
+set t_ut=                      " This should remove background colour problems
+                               " with tmux: http://superuser.com/a/562423
 
 
 " ----------------------------------------------------------------------
