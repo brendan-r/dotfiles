@@ -36,10 +36,10 @@ curl http://www.rstudio.com/products/rstudio/download-server/ |
   grep -o 'http://download2.rstudio.org/rstudio-server.*amd64\.deb' > rs_deb_url
 
 # Download the deb file
-paste rs_deb_url |  xargs wget -q -P ~/Downloads
+paste rs_deb_url |  xargs wget -q
 
-# Run it
-suod -y gdebi ~/Downloads/rstudio-*-amd64.deb
+# Run it. You really need to find a way for this to be accepted automatically (it prompts you to hit 'y')
+sudo gdebi rstudio-*-amd64.deb
 
 sudo touch /etc/rstudio/rserver.conf
 echo "auth-required-user-group=rstudio"  | sudo tee -a /etc/rstudio/rserver.conf
