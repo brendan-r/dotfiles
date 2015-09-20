@@ -2,29 +2,28 @@
 
 # At the time of writing, this is required for git2r, which is required for
 # devtools, which is required for quite a lot of your workflow
-sudo apt-get install libssl-dev libxml2-dev -y
 apt-get -y build-dep libcurl4-gnutls-dev
-apt-get -y install libcurl4-gnutls-dev
+apt-get -y install libcurl4-gnutls-dev libssl-dev libxml2-dev mesa-common-dev \
+  libcairo2-dev libxt-dev
 
-sudo add-apt-repository -y "deb http://cran.rstudio.com/bin/linux/ubuntu `lsb_release -cs`/"
+ add-apt-repository -y "deb http://cran.rstudio.com/bin/linux/ubuntu `lsb_release -cs`/"
 # The Ubuntu archives on CRAN are signed with the key of “Michael Rutter
 # marutter@gmail.com”
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
+ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 
-sudo apt-get update
+ apt-get update
 
-
-sudo apt-get install mesa-common-dev -y
 
 # Do the actuall install
-sudo apt-get -y install r-base r-base-dev
+ apt-get -y install r-base r-base-dev
 
 # Create a symlink of texi2dvi for R CMD check, as per
 # http://stackoverflow.com/questions/10819959/diagnosing-r-package-build-warning-latex-errors-when-creating-pdf-version
-sudo ln -s /usr/bin/texi2dvi /usr/local/bin/texi2dvi
+ ln -s /usr/bin/texi2dvi /usr/local/bin/texi2dvi
 
 # These are needed for Cairo graphics to work
-sudo apt-get install -y r-cran-cairodevice libcairo2-dev libxt-dev
+ apt-get install -y r-cran-cairodevice r-cran-kernsmooth r-cran-matrix \
+   r-cran-mgcv r-cran-nlme r-cran-nnet r-cran-rodbc
 
 # Install your favourite packages
-sudo Rscript install_r_packages.R
+ Rscript install_r_packages.R
