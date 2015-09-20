@@ -13,14 +13,14 @@ rm ~/rstudio_password
 echo $rs_password  >> ~/rstudio_password
 
 # Create the user
-sudo useradd -mN 
+sudo useradd -mN $rs_user
 
 # With the password
 echo $rs_user:$rs_password | sudo chpasswd
 
 # Create the rstudio user group, and add them to it
 sudo groupadd rstudio
-sudo usermod -G rstudio brstudio
+sudo usermod -G rstudio $rs_user
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Download and install the .deb file
