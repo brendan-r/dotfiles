@@ -11,16 +11,18 @@ sudo apt-get -y install libjpeg62
 
 # Get the latest version number, for 64 bit systems.
 curl http://www.rstudio.com/products/rstudio/download/ |
-  grep -o 'http://download1.rstudio.org/rstudio.*amd64\.deb' > rs_deb_url
+  grep -o 'https://download1.rstudio.org/rstudio.*amd64\.deb' > rs_deb_url
 
 # Download the deb file
-paste rs_deb_url |  xargs wget -q -P ~/Downloads
+paste rs_deb_url |  xargs wget -q -P ~
 
 rm rs_deb_url
 
-sudo dpkg -i ~/Downloads/rstudio-*-amd64.deb
+sudo dpkg -i ~/rstudio-*-amd64.deb
 
 # use pandoc shipped by Rstudio for global use
 sudo ln -s /usr/lib/rstudio/bin/pandoc/pandoc /usr/local/bin
 sudo ln -s /usr/lib/rstudio/bin/pandoc/pandoc-citeproc /usr/local/bin
 
+# Remove the .deb file
+rm ~/rstudio-*-amd64.deb
