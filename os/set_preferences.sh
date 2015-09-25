@@ -3,17 +3,6 @@
 cd "$(dirname "${BASH_SOURCE}")" && source "../utils.sh"
 
 # ----------------------------------------------------------------------
-# | Privacy                                                            |
-# ----------------------------------------------------------------------
-
-set_privacy_settings() {
-
-    # Fix privacy related issues present in Ubuntu 12.10-14.04
-    # https://fixubuntu.com/
-    return $(wget -qO - https://fixubuntu.com/fixubuntu.sh | bash > /dev/null; echo $?)
-}
-
-# ----------------------------------------------------------------------
 # | UI/UX                                                              |
 # ----------------------------------------------------------------------
 
@@ -34,10 +23,7 @@ set_ui_and_ux_settings() {
 
     # Set desktop background image location and options
     gsettings set org.gnome.desktop.background picture-options "stretched"
-    #gsettings set org.gnome.desktop.background picture-uri "file:///home/..."
-
-    # Set keyboard languages
-    gsettings set org.gnome.libgnomekbd.keyboard layouts "[ 'us', 'ro' ]"
+    # gsettings set org.gnome.desktop.background picture-uri "file:///home/..."
 
     # Set Launcher favorites
     gsettings set com.canonical.Unity.Launcher favorites "[
@@ -56,7 +42,6 @@ set_ui_and_ux_settings() {
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 main() {
-    execute "set_privacy_settings" "Privacy"
     execute "set_ui_and_ux_settings" "UI & UX"
 }
 
