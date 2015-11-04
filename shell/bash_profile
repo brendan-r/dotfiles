@@ -75,13 +75,11 @@ main
 
 
 # ----------------------------------------------------------------------
-# | Vim related: Added by BR                                            |
+# | Vim                                                                |
 # ----------------------------------------------------------------------
+
 # As per http://vim.wikia.com/wiki/Map_Ctrl-S_to_save_current_or_new_files
-# bash
-# No ttyctl, so we need to save and then restore terminal settings
-vim()
-{
+vim() {
   # osx users, use stty -g
   local STTYOPTS="$(stty --save)"
   stty stop '' -ixoff
@@ -90,7 +88,24 @@ vim()
 }
 
 
+# ----------------------------------------------------------------------
+# | tmux                                                               |
+# ----------------------------------------------------------------------
 
+# This should make bash launch tmux
+if command -v tmux>/dev/null; then
+    [[ ! $TERM =~ screen  ]] && [ -z $TMUX  ] && exec tmux
+  fi
+
+# ----------------------------------------------------------------------
+# | PATH stuff                                                         |
+# ----------------------------------------------------------------------
+
+PATH="/home/br/anaconda3/bin:$PATH"
+PATH="/usr/local/bin:$PATH"
+PATH="$PATH:$HOME/projects/dotfiles/bin"
+
+export PATH
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -103,3 +118,4 @@ unset -f source_bash_files
 # Clear system messages (e.g.: system copyright notice, the
 # date and time of the last login, the message of the day, etc.)
 clear
+
