@@ -2,9 +2,12 @@
 
 cd "$(dirname "${BASH_SOURCE}")" && source "../utils.sh"
 
-declare -a APT_PACKAGES=(
-
-    # Tools for compiling/building software from source
+declare -a COMMON_APT_PACKAGES=(
+    "curl"
+    "git"
+    "imagemagick"
+    "vim-gnome"
+    "virtualbox"
     "build-essential"
 
     # GnuPG archive keys of the Debian archive
@@ -13,21 +16,34 @@ declare -a APT_PACKAGES=(
     # Software which is not included by default
     # in Ubuntu due to legal or copyright reasons
     "ubuntu-restricted-extras"
+)
 
-    # Other
+declare -a DESKTOP_APT_PACKAGES=(
     "atom"
     "chromium-browser"
-    "curl"
     "flashplugin-installer"
     "gimp"
-    "git"
-    "imagemagick"
-    "transmission"
-    "vim-gnome"
-    "virtualbox"
     "vlc"
     "xclip"
 )
+
+declare -a SERVER_APT_PACKAGES=(
+    "openssh-server"
+    "fail2ban"
+)
+
+# Combine array, dependent on what wants installing - - - - - - - - - -
+
+declare -a APT_PACKAGES=${COMMON_APT_PACKAGES[@]}
+
+if $INSTALL_DESKTOP_APPS; then
+    APT_PACKAGES=( ${APT_PACKAGES[@]} ${DESKTOP_APT_PACKAGES[@]} )
+fi
+
+if $INSTALL_SERVER_APPS; then
+    APT_PACKAGES=( ${APT_PACKAGES[@]} ${SERVER_APT_PACKAGES[@]} )
+fi
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
