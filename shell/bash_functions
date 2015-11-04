@@ -240,3 +240,40 @@ hrfs() {
     #                          └─ add commas to the numbers
     #                             (changes "1023.2 KB" to "1,023.2 KB")
 }
+
+
+# ----------------------------------------------------------------------
+# | Turning movie files to gifs                                        |
+# ----------------------------------------------------------------------
+
+# Especially useful for gif based screen-casts
+
+gifcast() {
+
+    if [ -z "$1" ]
+      then
+        echo "No arguments supplied: Supply a movie file to convert!"
+        return
+    fi
+
+    declare -r fullname=$(basename "$1")
+    declare -r filename="${fullname%.*}"
+    
+
+    if [ -z "$2" ]
+      then
+        declare -r outnname="$filename.gif"
+    else 
+        declare -r outnname="$2"
+    fi
+
+    ffmpeg -v warning -i $1 -vf scale=600:-1 -pix_fmt rgb8 -r 10 -f gif - |\
+        gifsicle --optimize=3 --delay=3  > $outnname
+
+    if [ $? -ne 0 ]; then
+        echo "Problems encountered"
+        return
+    else
+        echo "Optimized gif ready!: $outnname"
+    fi
+}
