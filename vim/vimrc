@@ -24,6 +24,7 @@ call vundle#begin('~/.vim/plugins')
     Plugin 'bling/vim-airline'
     Plugin 'chriskempson/vim-tomorrow-theme'
     Plugin 'crusoexia/vim-monokai'
+    " Plugin 'flazz/vim-colorschemes'
     Plugin 'pangloss/vim-javascript'
     Plugin 'crusoexia/vim-javascript-lib'
     Plugin 'ap/vim-css-color'
@@ -45,6 +46,8 @@ call vundle#begin('~/.vim/plugins')
     Plugin 'tpope/vim-repeat'
     Plugin 'tpope/vim-surround'
     Plugin 'vim-scripts/xoria256.vim'
+    Plugin 'edkolev/tmuxline.vim'
+    Plugin 'epeli/slimux'
 
 call vundle#end()
 
@@ -122,6 +125,10 @@ inoremap (<cr> (<cr>)<c-o>O<tab>
 
 
 nnoremap <silent> <C-S> :<C-u>Update<CR>
+
+" Prevent yourself accidentally entering 'Ex Mode' (a bad mode)
+nnoremap Q <nop>
+
 
 ":inoremap <c-s>:Update<CR>
 
@@ -249,6 +256,14 @@ set t_ut=                      " This should remove background colour problems
 set whichwrap+=<,>,[,]         " This should mean that when you press left
                                " on a line with no characters, the cursor moves
                                " down: http://superuser.com/a/35421/488410
+
+" ----------------------------------------------------------------------
+" | Settings for vim-slime
+" ----------------------------------------------------------------------
+let g:slime_target = "tmux"    " Use tmux as the default target
+let g:slime_python_ipython = 1 " Preserve indentation for Python
+
+
 
 " ----------------------------------------------------------------------
 " | Helper Functions                                                   |
