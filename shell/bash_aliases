@@ -79,3 +79,7 @@ alias show-desktop-icons="gsettings set org.gnome.desktop.background show-deskto
 # Open
 alias o="xdg-open"
 
+# Set 2.7 as the default Python
+alias python=/usr/bin/python2.7
+
+
