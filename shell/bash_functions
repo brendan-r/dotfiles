@@ -247,6 +247,9 @@ hrfs() {
 # ----------------------------------------------------------------------
 
 # Especially useful for gif based screen-casts
+#
+# Supply a movie file as the first argument, and the filename of a gif as the
+# second
 
 gifcast() {
 
@@ -258,12 +261,12 @@ gifcast() {
 
     declare -r fullname=$(basename "$1")
     declare -r filename="${fullname%.*}"
-    
+
 
     if [ -z "$2" ]
       then
         declare -r outnname="$filename.gif"
-    else 
+    else
         declare -r outnname="$2"
     fi
 
@@ -277,3 +280,49 @@ gifcast() {
         echo "Optimized gif ready!: $outnname"
     fi
 }
+
+
+# Taken from: http://askubuntu.com/a/90219
+kill_old_kernals() {
+    sudo update-grub
+    sudo apt-get purge
+    sudo apt-get purge $(   \
+        dpkg -l linux-{image,headers}-"[0-9]*" |      \
+        awk '/ii/{print $2}' | grep -ve "$(uname -r | \
+        sed -r 's/-[a-z]+//')"
+    )
+}
+
+# ----------------------------------------------------------------------
+# | Display some simple site stats with go access
+# ----------------------------------------------------------------------
+
+# Start an HTTP server from a directory, optionally specifying the port
+
+site_stats() {
+    # This assumes that you have a dir containing your s3 and cloudfront logs
+    # for s3 files         : ~/home/br/projects/logs/logs
+    # for cloudfront files : ~/home/br/projects/logs/cf-logs
+    cd /home/br/projects/logs
+
+    # Sync the remote files with the local ones
+    aws s3 sync s3://brdc-logfiles ./
+
+    # Just use the cloudfront logs
+    cd cf-logs
+
+    # Depends on goaccess, obvs
+    zcat *.gz | goaccess -a > report.html
+
+    o report.html
+}
+
+
+
+
+
+
+
+
+
+
