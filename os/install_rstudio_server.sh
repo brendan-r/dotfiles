@@ -32,7 +32,9 @@ sudo apt-get install -y libapparmor1 # Required only for Ubuntu, not Debian
 # download .deb files
 
 # Get the latest version number, for 64 bit systems.
-curl http://www.rstudio.com/products/rstudio/download-server/ | grep -o 'https://download2.rstudio.org/rstudio-server.*amd64\.deb' >> rs_deb_url
+curl http://www.rstudio.com/products/rstudio/download-server/ | \
+    grep -o 'https://download2.rstudio.org/rstudio-server.*amd64\.deb' >> \
+    rs_deb_url
 
 # Download the deb file
 paste rs_deb_url |  xargs wget -q
