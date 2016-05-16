@@ -47,7 +47,9 @@ call vundle#begin('~/.vim/plugins')
     Plugin 'tpope/vim-surround'
     Plugin 'vim-scripts/xoria256.vim'
     Plugin 'edkolev/tmuxline.vim'
-    Plugin 'epeli/slimux'
+    " Plugin 'epeli/slimux'
+    Plugin 'jpalardy/vim-slime'
+    Plugin 'terryma/vim-multiple-cursors'
 
 call vundle#end()
 
@@ -262,8 +264,13 @@ set whichwrap+=<,>,[,]         " This should mean that when you press left
 " ----------------------------------------------------------------------
 let g:slime_target = "tmux"    " Use tmux as the default target
 let g:slime_python_ipython = 1 " Preserve indentation for Python
+" Use a tempfile for sending commands to tmux
+let g:slime_paste_file = "$HOME/.slime_paste"
 
+xmap ^\ :<Plug>SlimeRegionSend
 
+" tmux:
+" let g:slime_default_config = {'socket_name': 'default', 'target_pane': 'repl'}
 
 " ----------------------------------------------------------------------
 " | Helper Functions                                                   |
