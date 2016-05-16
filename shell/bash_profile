@@ -93,9 +93,9 @@ vim() {
 # ----------------------------------------------------------------------
 
 # This should make bash launch tmux
-if command -v tmux>/dev/null; then
-    [[ ! $TERM =~ screen  ]] && [ -z $TMUX  ] && exec tmux
-  fi
+# if command -v tmux>/dev/null; then
+#     [[ ! $TERM =~ screen  ]] && [ -z $TMUX  ] && exec tmux
+# fi
 
 # ----------------------------------------------------------------------
 # | PATH stuff                                                         |
