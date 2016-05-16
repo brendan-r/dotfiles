@@ -2,7 +2,8 @@
 
 ## Install R
 # Add the repo
-add-apt-repository -y "deb http://cran.rstudio.com/bin/linux/ubuntu `lsb_release -cs`/"
+add-apt-repository -y "deb http://cran.rstudio.com/bin/linux/ubuntu /
+    `lsb_release -cs`/"
 # The Ubuntu archives on CRAN are signed with the key of “Michael Rutter
 # marutter@gmail.com”
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
