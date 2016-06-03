@@ -43,3 +43,12 @@ export PROMPT_COMMAND="history -a; $PROMPT_COMMAND"
 # Add this variable so that anything latex based (should) be able to find your
 # centralised citation database
 export BIBINPUTS=${HOME}/bib
+
+# These should allow you to use GPG agent for SSH auth, for your YubiKey
+# https://www.jfry.me/articles/2015/gpg-smartcard/
+if [ -f "${HOME}/.gpg-agent-info" ]; then
+    . "${HOME}/.gpg-agent-info"
+      export GPG_AGENT_INFO
+      export SSH_AUTH_SOCK
+      export SSH_AGENT_PID
+fi

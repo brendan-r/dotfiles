@@ -66,5 +66,9 @@
 [include]
     path = ~/.gitconfig.local
 [user]
-	email = rocks.brendan@gmail.com
-	name = Brendan Rocks
+	email = brendan@brendanrocks.com
+  name = Brendan Rocks
+  signingkey = 7E604247
+[gpg]
+  program = gpg2
+
