@@ -5,14 +5,15 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Prerequisites
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-sudo apt-get -y install libjpeg62
+sudo apt-get -y install libjpeg62 libgstreamer0.10-0 \
+    libgstreamer-plugins-base0.10-0
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Download and install the .deb file
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Remove any existing .deb files
-rm ~/rstudio-*-amd64.de
+rm ~/rstudio-*-amd64.deb
 
 # Get the latest version number, for 64 bit systems.
 curl https://www.rstudio.com/products/rstudio/download/ |
@@ -31,3 +32,4 @@ sudo ln -sf /usr/lib/rstudio/bin/pandoc/pandoc-citeproc /usr/local/bin
 
 # Remove the .deb file
 rm ~/rstudio-*-amd64.deb
+
