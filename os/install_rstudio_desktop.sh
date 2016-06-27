@@ -6,30 +6,27 @@
 # Prerequisites
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 sudo apt-get -y install libjpeg62 libgstreamer0.10-0 \
-    libgstreamer-plugins-base0.10-0
+  libgstreamer-plugins-base0.10-0
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Download and install the .deb file
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# Remove any existing .deb files
-rm ~/rstudio-*-amd64.deb
+# Move to a clean/temp dir
+mkdir /tmp/rstudio_desktop_installation
+pushd /tmp/rstudio_desktop_installation
 
-# Get the latest version number, for 64 bit systems.
+# Webscrape the dev's page for the URL of the latest version, and download it
 curl https://www.rstudio.com/products/rstudio/download/ |
-  grep -o 'https://download1.rstudio.org/rstudio.*amd64\.deb' > rs_deb_url
+  grep -o 'https://download1.rstudio.org/rstudio.*amd64\.deb' |
+  xargs wget --quiet
 
-# Download the deb file
-paste rs_deb_url |  xargs wget --quiet -P ~
-
-rm rs_deb_url
-
-sudo dpkg -i ~/rstudio-*-amd64.deb
+# Install
+sudo dpkg -i rstudio-*-amd64.deb
 
 # Use pandoc shipped by Rstudio for global use (ovewrite any existing files)
 sudo ln -sf /usr/lib/rstudio/bin/pandoc/pandoc /usr/local/bin
 sudo ln -sf /usr/lib/rstudio/bin/pandoc/pandoc-citeproc /usr/local/bin
 
-# Remove the .deb file
-rm ~/rstudio-*-amd64.deb
-
+# Outta here
+popd
