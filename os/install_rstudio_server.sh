@@ -9,15 +9,13 @@
 
 # This is really confusing and broken -- fix!
 
-
-
-declare -r rs_usr=$(grep -q brstudio /etc/passwd)
-declare -r rs_grp=$(grep -q rstudio  /etc/group)
+declare rs_usr=$(grep -q brstudio /etc/passwd)
+declare rs_grp=$(grep -q rstudio  /etc/group)
 
 if [ -z "$rs_usr" ] && [ -z "$rs_grp" ]
 then
-    # Cook up a very long password
-    declare -r rs_password="$(openssl rand -base64 50)"
+    # Cook up a good long password
+    declare -r rs_password="$(openssl rand -base64 30)"
     declare -r rs_user="brstudio"
 
     # Write here to copy into a key manager
@@ -34,34 +32,26 @@ then
     sudo groupadd rstudio
     sudo usermod -G rstudio $rs_user
 
-
-# ($left_bracket || $right_bracket) && ! ($left_bracket && $right_bracket)
-
-# If the commands are different (e.g. brstudio exists)
-elif ([ -z "$rs_usr" ] || [ -z "$rs_grp" ]) && ! \
-     ([ -z "$rs_usr" ] && [ -z "$rs_grp" ])
-
+    echo "User brstudio in the group rstudio created."
+    echo "Copy ~/rstudio_password to a password manager, and delete it!"
+fi
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Download and install the .deb file
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-sudo apt-get install -y gdebi-core
-sudo apt-get install -y libapparmor1 # Required only for Ubuntu, not Debian
+sudo apt-get install -y gdebi-core libapparmor1
 
 # Get the latest version number, for 64 bit systems.
 curl https://www.rstudio.com/products/rstudio/download-server/ |
-    grep -o 'https://download2.rstudio.org/rstudio-server.*amd64\.deb' >
-    rss_deb_url
+    grep -o 'https://download2.rstudio.org/rstudio-server.*amd64\.deb' |
+    xargs wget --quiet
 
-# Downlo--quiet --directory-prefix ~deb file
-paste rss_deb_url |  xargs wget --quiet --directory-prefix ~
-
-# Run it. You really need to find a way for this to be accepted automatically (it prompts you to hit 'y')
-sudo gdebi rstudio-*-amd64.deb
+# Install
+sudo gdebi --non-interactive rstudio-*-amd64.deb
 
 sudo touch /etc/rstudio/rserver.conf
-echo "auth-required-user-group=rstudio"  | sudo tee -a /etc/rstudio/rserver.conf
+echo "auth-required-user-group=rstudio" | sudo tee -a /etc/rstudio/rserver.conf
 
 # make sure everything is working
 sudo rstudio-server verify-installation
