@@ -1,6 +1,4 @@
 #!/usr/bin/env Rscript
-update.packages(repos = "http://cran.us.r-project.org", ask = FALSE)
-
 install.packages(
   repos = "http://cran.us.r-project.org",
   c(
