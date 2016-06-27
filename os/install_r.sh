@@ -15,13 +15,13 @@ sudo apt-get -y build-dep libcurl4-gnutls-dev
 sudo apt-get -y install libcurl4-gnutls-dev libssl-dev libxml2-dev \
   mesa-common-dev libcairo2-dev libxt-dev
 
-sudo apt-get update
 
 # R install
+sudo apt-get update
 sudo apt-get -y install r-base r-base-dev
 
 # Create a symlink of texi2dvi for R CMD check [^1]
-ln -s /usr/bin/texi2dvi /usr/local/bin/texi2dvi
+sudo ln -s /usr/bin/texi2dvi /usr/local/bin/texi2dvi
 
 # Get some binary packages (pre-built deps)
 sudo apt-get install -y r-cran-cairodevice r-cran-kernsmooth r-cran-matrix \
