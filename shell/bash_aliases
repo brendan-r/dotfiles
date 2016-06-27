@@ -63,6 +63,15 @@ alias map="xargs -n1"
 alias q="exit"
 alias rm="rm -rf"
 
+
+# ----------------------------------------------------------------------
+# | Personal stuff                                                     |
+# ----------------------------------------------------------------------
+# (Re)Load keyboard map
+alias k="sh ~/.keyboard_startup"
+# Restart the network manager re:wifi
+alias wifi="sudo service network-manager restart"
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Copy to clipboard
