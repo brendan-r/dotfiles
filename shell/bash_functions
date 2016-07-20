@@ -293,6 +293,21 @@ kill_old_kernals() {
     )
 }
 
+# Very occasionally, the smartcard reader stuff falls over. This re-sets the
+# relevant services to get it all going again
+restart_yubikey() {
+    echo "Remove Yubikey / Smartcard reader..."
+    read -n 1
+    pkill scdaemon
+    pkill gpg-agent
+    echo "Re-insert Yubikey / Smartcard reader..."
+    read -n 1
+    echo | gpg2 --card-status
+}
+
+
+
+
 # ----------------------------------------------------------------------
 # | Display some simple site stats with go access
 # ----------------------------------------------------------------------
