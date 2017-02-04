@@ -6,7 +6,10 @@
 
 enable_color_support() {
 
-    if [[ $COLORTERM == gnome-* && $TERM == xterm ]] && \
+    # If you're using Emacs, use it's terminal emulator
+    if [[ -n "$EMACS" ]]; then
+	export TERM="eterm-color"
+    elif [[ $COLORTERM == gnome-* && $TERM == xterm ]] && \
        infocmp gnome-256color &> /dev/null; then
         export TERM="gnome-256color"
     elif infocmp xterm-256color &> /dev/null; then
