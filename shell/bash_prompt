@@ -115,7 +115,7 @@ get_git_repository_details() {
 
 }
 
-set_prompts() {
+set_xterm_prompt() {
 
     local black="" blue="" bold="" cyan="" green="" orange="" \
           purple="" red="" reset="" white="" yellow=""
@@ -230,6 +230,72 @@ set_prompts() {
 
 }
 
+
+set_eterm_prompt() {
+
+    local black="" blue="" bold="" cyan="" green="" orange="" \
+          purple="" red="" reset="" white="" yellow=""
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+
+        bold=""
+        reset="\e[0m"
+        black="\e[1;30m"
+        blue="\e[1;34m"
+        cyan="\e[1;36m"
+        green="\e[1;32m"
+        orange="\e[1;33m"
+        purple="\e[1;35m"
+        red="\e[1;31m"
+        white="\e[1;31m"
+        yellow="\e[1;33m"
+
+
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Prompt Statement variables
+    # http://ss64.com/bash/syntax-prompt.html
+
+    # ------------------------------------------------------------------
+    # | PS1 - Default interactive prompt                               |
+    # ------------------------------------------------------------------
+
+    PS1=""
+    PS1+="\[$cyan\]\u"            # Username
+    PS1+="\[$reset\]@"
+    PS1+="\[$yellow\]\h"            # Host
+    PS1+=": "
+    PS1+="\[$green\]\w"             # Working directory
+    PS1+="\$(get_git_repository_details \" on $cyan\")"
+    PS1+="\n"
+    PS1+="$\[$reset\] "
+
+
+    
+    export PS1
+
+    # ------------------------------------------------------------------
+    # | PS2 - Continuation interactive prompt                          |
+    # ------------------------------------------------------------------
+
+    PS2="⚡ "
+
+    export PS2
+
+    # ------------------------------------------------------------------
+    # | PS4 - Debug prompt                                             |
+    # ------------------------------------------------------------------
+
+    PS4="+$( tput cr && tput cuf 6 && printf "%s $reset" )"
+
+    export PS4
+
+}
+
+
 # ----------------------------------------------------------------------
 # | Main                                                               |
 # ----------------------------------------------------------------------
@@ -237,7 +303,13 @@ set_prompts() {
 main() {
     enable_color_support
     set_ls_colors
-    set_prompts
+
+    if [[ -n "$EMACS" ]]; then
+	set_eterm_prompt; 
+    else
+	set_xterm_prompt;
+    fi
+    
 }
 
 main
