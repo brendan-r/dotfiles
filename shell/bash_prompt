@@ -304,7 +304,7 @@ main() {
     enable_color_support
     set_ls_colors
 
-    if [[ -n "$EMACS" ]]; then
+    if [[ -n "$INSIDE_EMACS" ]]; then
 	set_eterm_prompt; 
     else
 	set_xterm_prompt;
