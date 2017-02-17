@@ -5,8 +5,8 @@
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# Make vim the default editor
-export EDITOR="vim"
+# Make emacsclient the default editor
+export EDITOR="emacsclient"
 
 # Ignore commands that start with spaces and duplicates
 export HISTCONTROL=ignoreboth
