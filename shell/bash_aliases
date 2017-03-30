@@ -55,7 +55,7 @@ alias update="aptu && \
 alias :q="exit"
 alias c="clear"
 alias ch="history -c && > ~/.bash_history"
-alias e="vim"
+alias e="emacsclient"
 alias g="git"
 alias ll="ls -l"
 alias m="man"
@@ -90,5 +90,3 @@ alias o="xdg-open"
 
 # Set 2.7 as the default Python
 alias python=/usr/bin/python2.7
-
-
