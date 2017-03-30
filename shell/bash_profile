@@ -101,8 +101,9 @@ vim() {
 # | PATH stuff                                                         |
 # ----------------------------------------------------------------------
 
-PATH="/home/br/anaconda3/bin:$PATH"
+PATH="$HOME/anaconda3/bin:$PATH"
 PATH="/usr/local/bin:$PATH"
+PATH="$HOME/bin:$PATH"
 PATH="$PATH:$HOME/projects/dotfiles/bin"
 
 export PATH
