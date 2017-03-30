@@ -103,7 +103,7 @@ vim() {
 
 PATH="$HOME/anaconda3/bin:$PATH"
 PATH="/usr/local/bin:$PATH"
-PATH="$HOME/bin:$PATH"
+PATH="$HOME/bin/hub-linux/bin:$PATH"
 PATH="$PATH:$HOME/projects/dotfiles/bin"
 
 export PATH
