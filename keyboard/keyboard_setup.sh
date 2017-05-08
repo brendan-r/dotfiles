@@ -3,7 +3,7 @@
 # Copy the Xmodmap file over
 cp ~/projects/dotfiles/keyboard/.Xmodmap ~/.Xmodmap
 
-# Copy the main xkp file to the right pace
+# Copy the main xkb file to the right pace
 sudo cp ~/projects/dotfiles/keyboard/us /usr/share/X11/xkb/symbols/us
 
 # Copy the basic types file
@@ -14,4 +14,3 @@ sudo rm -f /var/lib/xkb/*.xkm
 
 # Run Xmodmap
 xmodmap ~/.Xmodmap
-
