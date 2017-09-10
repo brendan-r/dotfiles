@@ -107,6 +107,19 @@ xkb_symbols "basic" {
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<KP9>)]
     };
 
+    key <AB07> {
+      type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
+      [m, M, Return],
+      actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<RTRN>)]
+    };
+
+    key <AC04> {
+      type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
+      [f, F, Tab],
+      actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<TAB>)]
+    };
+
+
 
     
 
