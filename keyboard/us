@@ -56,51 +56,61 @@ xkb_symbols "basic" {
     key <BKSL> {  [ backslash,         bar  ] };
 
     // Added by BR
-    key <AC06> {
+
+   key <AC06> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [h, H, KP_Home],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<HOME>)]
     };
+
     key <AD08> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [i, I, Up],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<UP>)]
     };
+
     key <AC10> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [semicolon, colon, KP_End],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<END>)]
     };
+
     key <AC07> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [j, J, Down],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<LEFT>)]
     };
+
     key <AC08> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [k ,K, Down],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<DOWN>)]
     };
+
     key <AC09> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [l, L, Left],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<RGHT>)]
     };
+
     key <AD10> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [p, P, KP_Delete],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<KPDL>)]
     };
+
     key <SPCE> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [space, space, BackSpace],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<BKSP>)]
     };
+
     key <AD07> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [u, U, KP_Next],
       actions[Group1]=[NoAction(), NoAction(), RedirectKey(key=<KP3>)]
     };
+
     key <AD09> {
       type = "ALPHABETIC_CAPS_ARROW", repeat=yes,
       [o, O, KP_Prior],
@@ -121,7 +131,6 @@ xkb_symbols "basic" {
 
 
 
-    
 
     // key <AC06> { [   h,  H, KP_Home, KP_Home ] };
     // key <AD08> {        [         i,    I, Up, Up           ]       };
