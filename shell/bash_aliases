@@ -55,7 +55,6 @@ alias update="aptu && \
 alias :q="exit"
 alias c="clear"
 alias ch="history -c && > ~/.bash_history"
-alias e="emacsclient"
 alias g="git"
 alias ll="ls -l"
 alias m="man"
