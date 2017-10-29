@@ -58,6 +58,7 @@ ec() {
         # -n $@ errors if there are no args
         test  "$#" -ne "0" && emacsclient25 -n "$@"
     fi
+
 }
 
 
@@ -66,6 +67,26 @@ ec() {
 et() {
     emacsclient25 -tty --alternate-editor '' "$@"
 }
+
+
+# Kill the Emacs server
+ek() {
+
+    server_ok() {
+        emacsclient25 -a "false" -e "(boundp 'server-process)"
+    }
+
+    # Is there a server running?
+    if [ "t" == "$(server_ok)" ]; then
+        # If so, kill it
+        emacsclient -e '(kill-emacs)'
+    else
+        echo "Emacs server not running"
+    fi
+
+}
+
+
 
 
 # Helper function used above. If the result is greater than one, the Emacs is
