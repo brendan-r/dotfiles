@@ -1,0 +1,18 @@
+[Desktop Entry]
+Version=1.0
+Name=GNU Emacs 25 Daemon
+GenericName=Text Editor
+Comment=View and edit files
+# Note: This runs all the lisp to get the environment going before it
+# decides if it can actually start the server or not. So, it chews up
+# conpute if there's already a server running. It might be easier to
+# reference a small script that checks if it's already running, first
+Exec=/usr/bin/emacs25 --daemon
+TryExec=emacs25
+Icon=emacs25
+Type=Application
+Terminal=false
+Categories=Utility;Development;TextEditor;
+Keywords=Text;Editor;
+StartupWMClass=Emacs
+X-GNOME-Autostart-enabled=true
