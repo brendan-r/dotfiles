@@ -34,3 +34,8 @@ xset r 32 # o
 xset r 30 # u
 xset r 41 # f
 xset r 58 # m
+
+# Make the keys repeat good and fast. The first number is the delay before
+# repating happens, the second is the delay between the next repetition of the
+# held key press
+xset r rate 200 50
