@@ -19,7 +19,7 @@ secondary = #e60053
 alert = #bd2c40
 
 [bar/example]
-;monitor = ${env:MONITOR:HDMI-1}
+;Monitor = ${env:MONITOR:HDMI-1}
 width = 100%
 height = 27
 ;offset-x = 1%
@@ -30,7 +30,8 @@ fixed-center = false
 background = ${colors.background}
 foreground = ${colors.foreground}
 
-line-size = 3
+; Remove the lines (not very interesting to look at)
+line-size = 0
 line-color = #f00
 
 border-size = 4
@@ -42,17 +43,18 @@ padding-right = 2
 module-margin-left = 1
 module-margin-right = 2
 
-font-0 = @FONT_FIXED@;1
-font-1 = @FONT_UNIFONT@:size=8:antialias=false;0
-font-2 = @FONT_SIJI@;1
+font-0 = Ubuntu Mono:pixelsize=11l;1
+font-1 = unifont:fontformat=truetype:size=8:antialias=false;0
+font-2 = siji:pixelsize=10;1
 
-modules-left = @MODULES_LEFT@
-modules-center = @MODULES_CENTER@
-modules-right = @MODULES_RIGHT@
+modules-left = i3
+modules-center = mpd
+; modules-right = filesystem xbacklight volume xkeyboard memory cpu wlan eth battery temperature date powermenu
+modules-right =   volume  memory cpu battery date powermenu
 
 tray-position = right
-tray-padding = 2
-;tray-transparent = true
+tray-padding = 10
+;Tray-transparent = true
 ;tray-background = #0063ff
 
 ;wm-restack = bspwm
@@ -74,7 +76,7 @@ type = internal/xwindow
 label = %title:0:30:...%
 
 [module/xkeyboard]
-type = internal/xkeyboard
+type = internal/xkeyboardkkk
 blacklist-0 = num lock
 
 format-prefix = " "
@@ -190,7 +192,8 @@ card = intel_backlight
 [module/cpu]
 type = internal/cpu
 interval = 2
-format-prefix = " "
+;format-prefix = " "
+format-prefix = "CPU "
 format-prefix-foreground = ${colors.foreground-alt}
 format-underline = #f90000
 label = %percentage:2%%
@@ -198,14 +201,15 @@ label = %percentage:2%%
 [module/memory]
 type = internal/memory
 interval = 2
-format-prefix = " "
+;format-prefix = " "
+format-prefix = "RAM "
 format-prefix-foreground = ${colors.foreground-alt}
 format-underline = #4bffdc
 label = %percentage_used%%
 
 [module/wlan]
 type = internal/network
-interface = @INTERFACE_WLAN@
+interface = wlp3s0
 interval = 3.0
 
 format-connected = <ramp-signal> <label-connected>
@@ -227,7 +231,7 @@ ramp-signal-foreground = ${colors.foreground-alt}
 
 [module/eth]
 type = internal/network
-interface = @INTERFACE_ETH@
+interface = enp0s25
 interval = 3.0
 
 format-connected-underline = #55aa55
@@ -253,7 +257,7 @@ time-alt = %H:%M:%S
 
 format-prefix = 
 format-prefix-foreground = ${colors.foreground-alt}
-format-underline = #0a6cf5
+;format-underline = #0a6cf5
 
 label = %date% %time%
 
@@ -262,13 +266,14 @@ type = internal/volume
 
 format-volume = <label-volume> <bar-volume>
 label-volume = VOL
-label-volume-foreground = ${root.foreground}
+;label-volume-foreground = ${root.foreground}
+label-volume-foreground = ${colors.foreground-alt}
 
 format-muted-prefix = " "
 format-muted-foreground = ${colors.foreground-alt}
-label-muted = sound muted
+label-muted = MUTED
 
-bar-volume-width = 10
+bar-volume-width = 15
 bar-volume-foreground-0 = #55aa55
 bar-volume-foreground-1 = #55aa55
 bar-volume-foreground-2 = #55aa55
@@ -287,9 +292,17 @@ bar-volume-empty-foreground = ${colors.foreground-alt}
 
 [module/battery]
 type = internal/battery
-battery = @BATTERY@
-adapter = @ADAPTER@
+battery = BAT0
+adapter = AC
 full-at = 98
+
+format-charging-prefix = "BAT "
+format-discharging-prefix = "BAT "
+format-full-prefix = "BAT "
+
+format-full-prefix-foreground = #55aa55
+format-charging-prefix-foreground = #f5a70a
+format-discharging-prefix-foreground = ${colors.foreground-alt}
 
 format-charging = <animation-charging> <label-charging>
 format-charging-underline = #ffb52a
@@ -297,8 +310,8 @@ format-charging-underline = #ffb52a
 format-discharging = <ramp-capacity> <label-discharging>
 format-discharging-underline = ${self.format-charging-underline}
 
-format-full-prefix = " "
-format-full-prefix-foreground = ${colors.foreground-alt}
+;format-full-prefix = " "
+;format-full-prefix-foreground = ${colors.foreground-alt}
 format-full-underline = ${self.format-charging-underline}
 
 ramp-capacity-0 = 
@@ -341,7 +354,7 @@ format-spacing = 1
 label-open = 
 label-open-foreground = ${colors.secondary}
 label-close =  cancel
-label-close-foreground = ${colors.secondary}
+label-close-foreground = ${colors.secondray}
 label-separator = |
 label-separator-foreground = ${colors.foreground-alt}
 
