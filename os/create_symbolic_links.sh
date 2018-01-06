@@ -28,6 +28,10 @@ declare -a FILES_TO_SYMLINK=(
 
 main() {
 
+    # Simple, unreliable thing for config files, for now
+    ln -s  $HOME/projects/dotfiles/config/* $HOME/.config/
+
+    # Complicated copying thing for the above
     local i=""
     local sourceFile=""
     local targetFile=""
