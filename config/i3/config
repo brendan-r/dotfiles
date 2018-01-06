@@ -200,6 +200,10 @@ bindsym $mod+comma			gaps inner current plus 5
 bindsym $mod+period      gaps inner current minus 5
 
 
+# Programs ---------------------------------------------------------------------
+
+bindsym $mod+Shift+Return exec /usr/bin/emacs-gui-client -c
+
 # Settings ---------------------------------------------------------------------
 
 # Set inner/outer gaps
@@ -209,3 +213,28 @@ gaps inner 25
 for_window [class=".*"] border pixel 5
 hide_edge_borders both
 
+# Network manger is pretty useful
+exec --no-startup-id nm-applet
+# Use compton
+exec --no-startup-id compton --config $HOME/.config/compton.conf -b
+
+# Get the emacs server running
+exec --no-startup-id /usr/bin/emacs25 --daemon
+
+# Wallpaper: You could make something to download this if it doesn't exist
+exec --no-startup-id feh --bg-fill Pictures/Wallpapers/eric_shaw_-_behind_glass.jpg
+
+exec_always --no-startup-id $HOME/.config/polybar/launch.sh
+
+bindsym $mod+Control+l exec bash -c '$HOME/projects/dotfiles/bin/i3lock-blur'
+exec xautolock -time 1 -locker '$HOME/projects/dotfiles/bin/i3lock-blur' &
+
+
+# Colours -------------------------------------------------------------------
+# class                 border  backgr. text    indicator child_border
+client.focused          #4c7899 #285577 #ffffff #2e9ef4   #ffffff
+client.focused_inactive #333333 #5f676a #ffffff #484e50   #5f676a
+client.unfocused        #333333 #222222 #888888 #292d2e   #222222
+client.urgent           #2f343a #900000 #ffffff #900000   #900000
+client.placeholder      #000000 #0c0c0c #ffffff #000000   #0c0c0c
+client.background       #ffffff
