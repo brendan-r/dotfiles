@@ -13,7 +13,7 @@ sudo apt-get install -y libxcb1-dev libxcb-keysyms1-dev libpango1.0-dev      \
      libxcb-util0-dev libxcb-icccm4-dev libyajl-dev                          \
      libstartup-notification0-dev libxcb-randr0-dev libev-dev                \
      libxcb-cursor-dev  libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
-     libxkbcommon-x11-dev autoconf libxcb-xrm-dev
+     libxkbcommon-x11-dev autoconf libxcb-xrm-dev i3status
 
 # Download and build the project ---------------------------------------------
 
@@ -41,5 +41,12 @@ echo "exec i3" > ~/.xinitrc
 
 # Other stuff that you like ----------------------------------------------------
 
-# Dunst is a cool notification system
-sudo apt-get install -y dunst
+sudo apt-get install -y \
+      # Dunst is a cool notification system
+     dunst  \
+     # Useful for figuring out if i3 is active or not
+     wmctrl \
+     # This just makes everything look better
+     compton \
+     # This is for locking the screen
+     i3lock xautolock
