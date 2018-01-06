@@ -200,3 +200,12 @@ bindsym $mod+comma			gaps inner current plus 5
 bindsym $mod+period      gaps inner current minus 5
 
 
+# Settings ---------------------------------------------------------------------
+
+# Set inner/outer gaps
+gaps outer 0
+gaps inner 25
+
+for_window [class=".*"] border pixel 5
+hide_edge_borders both
+
