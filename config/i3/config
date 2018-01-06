@@ -178,3 +178,8 @@ bindsym XF86AudioPause exec playerctl pause
 bindsym XF86AudioNext exec playerctl next
 bindsym XF86AudioPrev exec playerctl previous
 
+# Bind the search and tools keys to switching the track pad on / off
+bindsym XF86Tools  exec bash -c 'xinput disable "SynPS/2 Synaptics TouchPad" | notify-send --expire-time 1 "Trackpad Disabled" "On: F10/maginifying glass icon\nOff: F9/cog icon"'
+bindsym XF86Search exec bash -c 'xinput enable  "SynPS/2 Synaptics TouchPad" | notify-send --expire-time 1 "Trackpad Enabled"  "On: F10/maginifying glass icon\nOff: F9/cog icon"'
+
+
