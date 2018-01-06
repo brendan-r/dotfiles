@@ -44,6 +44,9 @@ export MANPAGER="less -X"
 # centralised citation database
 export BIBINPUTS=${HOME}/bib
 
+# I've got a bad feeling about this
+export PYTHONPATH="/home/br/anaconda3/bin/python"
+
 # These should allow you to use GPG agent for SSH auth, for your YubiKey
 # https://www.jfry.me/articles/2015/gpg-smartcard/
 if [ -f "${HOME}/.gpg-agent-info" ]; then
