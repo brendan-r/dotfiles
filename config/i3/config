@@ -227,7 +227,7 @@ exec --no-startup-id feh --bg-fill Pictures/Wallpapers/eric_shaw_-_behind_glass.
 exec_always --no-startup-id $HOME/.config/polybar/launch.sh
 
 bindsym $mod+Control+l exec bash -c '$HOME/projects/dotfiles/bin/i3lock-blur'
-exec xautolock -time 1 -locker '$HOME/projects/dotfiles/bin/i3lock-blur' &
+exec_always xautolock -time 5 -locker '$HOME/projects/dotfiles/bin/i3lock-blur' &
 
 
 # Colours -------------------------------------------------------------------
