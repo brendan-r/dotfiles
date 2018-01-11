@@ -26,6 +26,8 @@ keycode  133 = Alt_L Meta_L
 
 ! Menu becomes Alt_L
 keycode 135 = Alt_L Meta_L
+! Print screen for the newer ThinkPad keyboards
+keycode  107 = Alt_L Meta_L
 
 ! Define Control_R and Alt_R similar to Control_L and Alt_L
 keycode 108 = Control_L
