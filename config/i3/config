@@ -200,6 +200,8 @@ bindsym $mod+comma			gaps inner current plus 5
 bindsym $mod+period      gaps inner current minus 5
 
 
+bindsym $mod+Shift+s exec XDG_CURRENT_DESKTOP="Unity" unity-control-center
+
 # Programs ---------------------------------------------------------------------
 
 bindsym $mod+Shift+Return exec /usr/bin/emacs-gui-client -c

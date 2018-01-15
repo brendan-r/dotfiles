@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Notes
+#
+# This requires the environment variables $B2_ACCOUNT_ID, $B2_APP_KEY,
+# $B2_MACHINE_BUCKET, $DIR_TO_BACKUP, and $BACKUP_KEY_ID to be set and exported,
+# by tradition in your ~/.bash.local
+#
+# Borked backups can often be fixed by deleting $HOME/.cache/duplicity/* , which
+# stores the local metadata/manifest for what should be where
+
+notify-send "Backup Beginning" "Attempting to back-up home dir to B2"
+
+TEMP_LOGFILE=$(mktemp)
+LOGFILE=$HOME/.backup_log
+touch $LOGFILE
+
+# Perform the backup, make a full backup if it's been over 30 days
+# You should write this out to a log somewhere
+duplicity \
+    --encrypt-key ${BACKUP_KEY_ID} \
+    --gpg-binary=/usr/bin/gpg2 \
+    --gpg-options="--trust-model=always" \
+    --full-if-older-than 30D \
+    ${DIR_TO_BACKUP} \
+    b2://${B2_ACCOUNT_ID}:${B2_APP_KEY}@${B2_MACHINE_BUCKET} > \
+    ${TEMP_LOGFILE}
+
+# Note: You will always get a gpg error printed here, because duplicity tries to
+# decrypt and read the manifest (and you keep your private key off
+# machines). However, the backup should have worked; it's harmless
+
+# Save the exit status of the duplicity call
+BACKUP_WORKED=$?
+
+# Remove files older than 90 days
+duplicity \
+    --encrypt-key ${BACKUP_KEY_ID} \
+    --gpg-binary=/usr/bin/gpg2 \
+    --gpg-options="--trust-model=always" \
+    remove-older-than 90D --force \
+    b2://${B2_ACCOUNT_ID}:${B2_APP_KEY}@${B2_MACHINE_BUCKET}
+
+# Append the log for this run to the running log
+cat $TEMP_LOGFILE >> $LOGFILE
+
+# The stats from the report that you're interested in
+TO_REPORT="StartTime|ElapsedTime|SourceFiles|SourceFileSize|RawDeltaSize|Errors"
+
+# Init a file for the notification body text
+NOTIFICATION_FILE=$(mktemp)
+
+grep -E $TO_REPORT $TEMP_LOGFILE |
+    # Where you have stuff in brackets, it's generally human readable. The stuff
+    # that proceeds it generally isn't. Where you have brackets, delete the
+    # other quantification.
+    sed -E 's/(^[a-Z]+).*[(]([^)]*)[)]/\1 \2/g' |
+    # Make the start stuff bold, with a colon
+    sed -E  's/(^[a-Z]+)/<b>\1:<\/b>/g' |
+    # Split up the CamelCase stat variables
+    sed -E 's/([A-Z])/ \1/g' > $NOTIFICATION_FILE
+
+
+# Send a notification about whether it worked or not
+if [ $BACKUP_WORKED -eq 0 ]
+then
+    notify-send "Backup Complete" "$(cat $NOTIFICATION_FILE)"
+else
+    notify-send --urgency=critical "Backup FAILED" "$(cat $NOTIFICATION_FILE)"
+fi
