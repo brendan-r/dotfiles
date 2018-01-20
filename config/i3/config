@@ -188,16 +188,16 @@ bindsym XF86Search exec bash -c 'xinput enable  "SynPS/2 Synaptics TouchPad" | n
 # Here's an easier way to resize things
 
 # Width
-bindsym $mod+minus resize shrink width 10 px or 10ppt
-bindsym $mod+plus  resize grow   width 10 px or 10ppt
+bindsym $mod+minus resize shrink width 2 px or 2ppt
+bindsym $mod+plus  resize grow   width 2 px or 2ppt
 
 # Height
-bindsym $mod+Shift+minus  resize shrink height 10 px or 10ppt
-bindsym $mod+Shift+plus   resize grow   height 10 px or 10ppt
+bindsym $mod+Shift+minus  resize shrink height 2 px or 2ppt
+bindsym $mod+Shift+plus   resize grow   height 2 px or 2ppt
 
 
 bindsym $mod+comma			gaps inner current plus 5
-bindsym $mod+period      gaps inner current minus 5
+bindsym $mod+period     gaps inner current minus 5
 
 
 bindsym $mod+Shift+s exec XDG_CURRENT_DESKTOP="Unity" unity-control-center
