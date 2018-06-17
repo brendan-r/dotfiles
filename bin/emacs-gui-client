@@ -2,7 +2,7 @@
 
 # Plagiarized from http://mjwall.com/blog/2013/10/04/how-i-use-emacs/
 #
-# Modified slightly; uses emacsclient25 specifically
+# Modified slightly; uses emacsclient26 specifically
 #
 # emacsclient options for reference
 # -a "" starts emacs daemon and reattaches
@@ -20,11 +20,13 @@
 # Number of current visible frames (Emacs daemon always has a visible frame
 # called F1)
 emacs_visible_frames() {
-    emacsclient25 -a "" -e '(length (visible-frame-list))'
+    # Note, you'll need to symlink /usr/bin/emacs to /usr/bin/emacs26, or this
+    # won't work, and will cause you lots of problems!
+    emacsclient26 -a "" -e '(length (visible-frame-list))'
 }
 
 change_focus() {
-    emacsclient25 -n -e "(select-frame-set-input-focus (selected-frame))" > \
+    emacsclient26 -n -e "(select-frame-set-input-focus (selected-frame))" > \
                   /dev/null
 }
 
@@ -36,10 +38,10 @@ test "$(emacs_visible_frames)" -eq "1" && change_focus
 if [ "$(emacs_visible_frames)" -lt  "2" ]; then
     # need to create a frame
     # -c $@ with no args just opens the scratch buffer
-    emacsclient25 -n -c "$@" && change_focus
+    emacsclient26 -n -c "$@" && change_focus
 else
     # there is already a visible frame besides the daemon, so
     change_focus
     # -n $@ errors if there are no args
-    test  "$#" -ne "0" && emacsclient25 -n "$@"
+    test  "$#" -ne "0" && emacsclient26 -n "$@"
 fi

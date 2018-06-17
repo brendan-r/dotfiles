@@ -231,7 +231,7 @@ exec --no-startup-id nm-applet
 exec --no-startup-id compton --config $HOME/.config/compton.conf -b
 
 # Get the emacs server running
-exec --no-startup-id /usr/bin/emacs25 --daemon
+exec --no-startup-id /usr/bin/emacs26 --daemon
 
 # Wallpaper: You could make something to download this if it doesn't exist
 exec --no-startup-id feh --bg-fill Pictures/Wallpapers/eric_shaw_-_behind_glass.jpg

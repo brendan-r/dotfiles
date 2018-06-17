@@ -8,7 +8,7 @@
 # If there is not already an emacsclient running, then just use Emacs via the
 # terminal. Otherwise, use the GUI version
 emacs_visible_frames() {
-    emacsclient25 -a "" -e '(length (visible-frame-list))'
+    emacsclient26 -a "" -e '(length (visible-frame-list))'
 }
 
 # Helper function used above. If the result is greater than one, the Emacs is
@@ -39,7 +39,7 @@ ec() {
 # This could really be an alias; run Emacs in a terminal. If there isn't already
 # a server running, then start one
 et() {
-    emacsclient25 -tty --alternate-editor '' "$@"
+    emacsclient26 -tty --alternate-editor '' "$@"
 }
 
 
@@ -47,7 +47,7 @@ et() {
 ek() {
 
     server_ok() {
-        emacsclient25 -a "false" -e "(boundp 'server-process)"
+        emacsclient26 -a "false" -e "(boundp 'server-process)"
     }
 
     # Is there a server running?
