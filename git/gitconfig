@@ -52,7 +52,7 @@
 [core]
     attributesfile = ~/.gitattributes
     autocrlf = input
-    editor = vim
+    editor = emacsclient
     excludesfile = ~/.gitignore
 
 [pretty]
