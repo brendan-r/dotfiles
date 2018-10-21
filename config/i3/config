@@ -171,7 +171,19 @@ bindsym XF86MonBrightnessUp exec xbacklight -inc 20 # increase screen brightness
 bindsym XF86MonBrightnessDown exec xbacklight -dec 20 # decrease screen brightness
 
 # Touchpad controls
-bindsym XF86TouchpadToggle exec /some/path/toggletouchpad.sh # toggle touchpad
+# bindsym XF86TouchpadToggle exec /some/path/toggletouchpad.sh # toggle touchpad
+
+# X200T Screen rotation
+# From the icon, I'd guess this toggles screen rotation on/off
+# bindsym XF86Launch5
+# I'd guess this is rotate 90 degrees clockwise
+# bindsym XF86Launch6 exec bash $HOME/projects/dotfiles/bin/screen_rotation.sh
+bindsym XF86Launch6 exec bash $HOME/projects/dotfiles/bin/rotate_stylus_and_screen.sh
+# I'd guess this is bring up the onscreen keyboard
+# bindsym XF86Launch7
+# I'd guess this is lock the screen
+bindsym XF86Launch8 exec bash -c 'i3lock --color=000000'
+
 
 # Media player controls
 bindsym XF86AudioPlay exec playerctl play
