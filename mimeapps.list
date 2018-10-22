@@ -2,55 +2,55 @@
 
 # R stuff
 
-text/x-r-source=emacs25.desktop
-text/x-R=emacs25.desktop;
-text/x-r-markdown=emacs25.desktop
-text/x-r=emacs25.desktop;
-text/x-r-doc=emacs25.desktop;
-text/x-r-history=emacs25.desktop;
-text/x-r-html=emacs25.desktop;
-text/x-r-markdown=emacs25.desktop;
-text/x-r-presentation=emacs25.desktop;
-text/x-r-profile=emacs25.desktop;
-text/x-r-source=emacs25.desktop;
-text/x-r-sweave=emacs25.desktop;
+text/x-r-source=emacs26.desktop
+text/x-R=emacs26.desktop;
+text/x-r-markdown=emacs26.desktop
+text/x-r=emacs26.desktop;
+text/x-r-doc=emacs26.desktop;
+text/x-r-history=emacs26.desktop;
+text/x-r-html=emacs26.desktop;
+text/x-r-markdown=emacs26.desktop;
+text/x-r-presentation=emacs26.desktop;
+text/x-r-profile=emacs26.desktop;
+text/x-r-source=emacs26.desktop;
+text/x-r-sweave=emacs26.desktop;
 
 
 # Text / Prose
 
-text/x-markdown=emacs25.desktop;
-text/english=emacs25.desktop;gvim.desktop;vim.desktop;
+text/x-markdown=emacs26.desktop;
+text/english=emacs26.desktop;gvim.desktop;vim.desktop;
 text/mathml=libreoffice-math.desktop;
-text/plain=emacs25.desktop;gvim.desktop;vim.desktop;org.gnome.gedit.desktop;
+text/plain=emacs26.desktop;gvim.desktop;vim.desktop;org.gnome.gedit.desktop;
 
 
 # Python
 
-text/x-python=emacs25.desktop;
+text/x-python=emacs26.desktop;
 
 
 # Web
 
-text/css=emacs25.desktop;
-text/html=firefox-trunk.desktop;chromium-browser.desktop;emacs25.desktop;
-text/javascript=emacs25.desktop;
+text/css=emacs26.desktop;
+text/html=firefox-trunk.desktop;chromium-browser.desktop;emacs26.desktop;
+text/javascript=emacs26.desktop;
 
 
 # Other
 
-application/x-shellscript=emacs25.desktop;
+application/x-shellscript=emacs26.desktop;
 
-text/x-c=emacs25.desktop;gvim.desktop;vim.desktop;
-text/x-c++=emacs25.desktop;gvim.desktop;vim.desktop;
-text/x-c++hdr=emacs25.desktop;gvim.desktop;vim.desktop;emacs25.desktop;
-text/x-c++src=emacs25.desktop;gvim.desktop;vim.desktop;emacs25.desktop;
-text/x-chdr=emacs25.desktop;gvim.desktop;vim.desktop;emacs25.desktop;
-text/x-csrc=emacs25.desktop;gvim.desktop;vim.desktop;emacs25.desktop;
+text/x-c=emacs26.desktop;gvim.desktop;vim.desktop;
+text/x-c++=emacs26.desktop;gvim.desktop;vim.desktop;
+text/x-c++hdr=emacs26.desktop;gvim.desktop;vim.desktop;emacs26.desktop;
+text/x-c++src=emacs26.desktop;gvim.desktop;vim.desktop;emacs26.desktop;
+text/x-chdr=emacs26.desktop;gvim.desktop;vim.desktop;emacs26.desktop;
+text/x-csrc=emacs26.desktop;gvim.desktop;vim.desktop;emacs26.desktop;
 
-text/x-java=emacs25.desktop;gvim.desktop;vim.desktop;
-text/x-makefile=emacs25.desktop;gvim.desktop;vim.desktop;
-text/x-moc=emacs25.desktop;gvim.desktop;vim.desktop;
+text/x-java=emacs26.desktop;gvim.desktop;vim.desktop;
+text/x-makefile=emacs26.desktop;gvim.desktop;vim.desktop;
+text/x-moc=emacs26.desktop;gvim.desktop;vim.desktop;
 
-text/x-tcl=emacs25.desktop;gvim.desktop;vim.desktop;
-text/x-tex=emacs25.desktop;gvim.desktop;vim.desktop;emacs25.desktop;
-text/xml=firefox-trunk.desktop;emacs25.desktop
+text/x-tcl=emacs26.desktop;gvim.desktop;vim.desktop;
+text/x-tex=emacs26.desktop;gvim.desktop;vim.desktop;emacs26.desktop;
+text/xml=firefox-trunk.desktop;emacs26.desktop
