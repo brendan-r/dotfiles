@@ -75,9 +75,6 @@ bindsym $mod+v split v
 # enter fullscreen mode for the focused container
 bindsym $mod+f fullscreen toggle
 
-# change container layout (stacked, tabbed, toggle split)
-bindsym $mod+s layout stacking
-bindsym $mod+w layout tabbed
 # Note; replace this with something good!
 # bindsym $mod+e layout toggle split
 
@@ -225,7 +222,14 @@ bindsym $mod+t  exec i3-sensible-terminal
 bindsym $mod+b exec firefox-trunk
 
 # Mod + S for Unity settings
-bindsym $mod+Shift+s exec XDG_CURRENT_DESKTOP="Unity" unity-control-center
+# bindsym $mod+Shift+s exec XDG_CURRENT_DESKTOP="Unity" unity-control-center
+
+
+# Keys for tabbed/stacked/default modes ----------------------------------------
+# change container layout (stacked, tabbed, toggle split)
+bindsym $mod+Shift+s layout stacking
+bindsym $mod+Shift+w layout tabbed
+bindsym $mod+Shift+d layout default
 
 
 # Settings ---------------------------------------------------------------------
