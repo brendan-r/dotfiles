@@ -1,24 +1,22 @@
-# Install Docker
-# You're currently using 14.04 or 15.04, so there are no dependencies
-# However, there might be on other versions. See:
-# https://docs.docker.com/installation/ubuntulinux/
+# From
+# https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-repository
 
-# You should already have curl installed
-# sudo apt-get update
-# sudo apt-get install curl
+sudo apt-get remove docker docker-engine docker.io containerd runc
 
-# Download the latest Docker package
-curl -sSL https://get.docker.com/ | sh
+sudo apt install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common
 
-# Create the docker group and add yourself
-usermod -aG docker $USER
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
-# You're opting *not* to take the performance hit involved in
-# enabling memory & swap accounting. Details if you want to do it
-# are here: https://docs.docker.com/installation/ubuntulinux/
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
 
-# Configuring a DNS server
-# Apparently you need to do this if you're using docker on any kind
-# of desktop version of Ubutu
-# Here you're setting it to use OpenDNS
-sed -i 's/.*DOCKER_OPTS=.*/DOCKER_OPTS="--dns 208.67.222.222 --dns 208.67.220.220"/g' /etc/default/docker
+sudo apt update
+
+sudo apt install docker-ce docker-ce-cli containerd.io
