@@ -219,7 +219,7 @@ bindsym $mod+e exec /usr/bin/emacs-gui-client -c
 bindsym $mod+t  exec i3-sensible-terminal
 
 # Mod + b for browser
-bindsym $mod+b exec firefox-trunk
+bindsym $mod+b exec firefox
 
 # Mod + S for Unity settings
 # bindsym $mod+Shift+s exec XDG_CURRENT_DESKTOP="Unity" unity-control-center
