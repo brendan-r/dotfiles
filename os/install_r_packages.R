@@ -3,20 +3,14 @@ install.packages(
   repos = "http://cran.us.r-project.org",
   c(
     "Rcpp",
-    "dplyr",
-    "tidyr",
+    "tidyverse",
     "lubridate",
     "devtools",
-    "knitr",
+    "rmarkdown",
     "httr",
-    "ggplot2",
-    "NPS",
     "arm",
     "lme4",
-    "RPushbullet",
     "Cairo",
-    "boxr"
+    "prophet"
   )
 )
-
-install.packages("rstan", dependencies = TRUE)

@@ -2,12 +2,18 @@
 
 ## Install R
 # Add the repo
+# sudo add-apt-repository -y \
+    #   "deb https://cran.rstudio.com/bin/linux/ubuntu `lsb_release -cs`/"
+
 sudo add-apt-repository -y \
-  "deb https://cran.rstudio.com/bin/linux/ubuntu `lsb_release -cs`/"
+      "deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/"
+
 
 # The Ubuntu archives on CRAN are signed with the key of “Michael Rutter
 # marutter@gmail.com”
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
+# sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
+
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 51716619E084DAB9
 
 # At the time of writing, this is required for git2r, which is required for
 # devtools, which is required for quite a lot of your workflow
