@@ -42,3 +42,5 @@ sudo make install
 # Let X know that you want to use this -----------------------------------------
 echo "exec i3" > ~/.xinitrc
 
+# Stop GNOME messing with it when you opnen Nautilus ---------------------------
+gsettings set org.gnome.desktop.background show-desktop-icons false
