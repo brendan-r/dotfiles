@@ -21,6 +21,9 @@ set_privacy_settings() {
 # | UI/UX                                                              |
 # ----------------------------------------------------------------------
 
+gsettings set org.gnome.nautilus.preferences default-folder-viewer 'list-view'
+
+
 set_ui_and_ux_settings() {
 
     # Hide the bluetooth and volume icons from the menu bar
