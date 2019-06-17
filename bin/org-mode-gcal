@@ -1,0 +1,15 @@
+# !/bin/bash
+
+# The command to start the server
+start_server_command="/usr/bin/emacs --daemon=gcal"
+
+# Is the server already running? Start it if not
+if ps aux | grep -v "grep" | grep -q "$start_server_command"; then
+    echo "Emacs server for calendar updates is already running!"
+else
+    echo "Emacs server for calendar updates is not running. Starting it!"
+    eval $start_server_command
+fi
+
+# Execute the fetch command in the dedicated server via emacsclient
+/usr/bin/emacsclient --socket-name=gcal --eval "(org-gcal-fetch)"
