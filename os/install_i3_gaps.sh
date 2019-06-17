@@ -42,15 +42,3 @@ sudo make install
 # Let X know that you want to use this -----------------------------------------
 echo "exec i3" > ~/.xinitrc
 
-
-# Other stuff that you like ----------------------------------------------------
-
-sudo apt-get install -y \
-      # Dunst is a cool notification system
-     dunst  \
-     # Useful for figuring out if i3 is active or not
-     wmctrl \
-     # This just makes everything look better
-     compton \
-     # This is for locking the screen
-     i3lock xautolock
