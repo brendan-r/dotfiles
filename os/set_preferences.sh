@@ -59,11 +59,18 @@ set_ui_and_ux_settings() {
 
 }
 
+
+make_firefox_default_browser(){
+    sudo update-alternatives --install  /usr/bin/x-www-browser x-www-browser \
+         /usr/bin/firefox 250
+}
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 main() {
     execute "set_privacy_settings" "Privacy"
     execute "set_ui_and_ux_settings" "UI & UX"
+    execute "make_firefox_default_browser" "Make Firefox Default Browser"
 }
 
 main
