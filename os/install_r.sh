@@ -6,7 +6,7 @@
     #   "deb https://cran.rstudio.com/bin/linux/ubuntu `lsb_release -cs`/"
 
 sudo add-apt-repository -y \
-      "deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/"
+      "deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/"
 
 
 # The Ubuntu archives on CRAN are signed with the key of “Michael Rutter
