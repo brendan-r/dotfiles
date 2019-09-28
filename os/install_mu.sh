@@ -18,3 +18,12 @@ sudo make install
 
 # Get back to where you were
 popd
+
+# Install tools to get at gnome-keyring securely -------------------------------
+
+# You can then store passwords in gnome-keyring with something like
+# secret-tool store --label='<label>' username <foo> id <baz>
+# And retrieve it with something like
+# secret-tool store username <foo> id <baz>
+
+sudo apt install libsecret-tools
