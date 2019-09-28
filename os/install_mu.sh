@@ -1,16 +1,19 @@
 #!/bin/bash
 
+# Install mu ------------------------------------------------------------------
+
 # Install dependencies
-sudo apt install autoconf automake libtool texinfo libgmime-2.6-dev libxapian-dev -y
+sudo apt install autoconf automake libtool texinfo libgmime-2.6-dev \
+     libxapian-dev gmime-3.0 -y
 
 # Download the source to a new tempdir, and unpack it
 mkdir /tmp/mu-install/
 pushd /tmp/mu-install/
 
-wget https://github.com/djcb/mu/archive/v1.0.tar.gz
-tar xvfz v1.0.tar.gz
+wget https://github.com/djcb/mu/archive/1.2.tar.gz
+tar xvfz 1.2.tar.gz
 
-cd mu-1.0
+cd mu-1.2
 
 # Install mu
 ./autogen.sh && ./configure && make
