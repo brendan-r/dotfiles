@@ -134,7 +134,7 @@ mode "resize" {
         bindsym k resize shrink height 10 px or 10 ppt
         bindsym l resize grow width 10 px or 10 ppt
 
-        # same bindings, but for the arrow keysi
+        # same bindings, but for the arrow keys
         bindsym Left resize shrink width 10 px or 10 ppt
         bindsym Down resize grow height 10 px or 10 ppt
         bindsym Up resize shrink height 10 px or 10 ppt
@@ -235,11 +235,12 @@ bindsym $mod+Shift+d layout default
 # Settings ---------------------------------------------------------------------
 
 # Set inner/outer gaps
-gaps outer 0
+smart_gaps inverse_outer
+gaps horizontal 300
 gaps inner 25
 
 for_window [class=".*"] border pixel 5
-hide_edge_borders both
+hide_edge_borders smart
 
 # Network manger is pretty useful
 exec --no-startup-id nm-applet
@@ -248,9 +249,6 @@ exec --no-startup-id compton --config $HOME/.config/compton.conf -b
 
 # Get the emacs server running
 exec --no-startup-id /usr/bin/emacs26 --daemon
-
-# Wallpaper: You could make something to download this if it doesn't exist
-exec --no-startup-id feh --bg-fill Pictures/Wallpapers/eric_shaw_-_behind_glass.jpg
 
 exec_always --no-startup-id $HOME/.config/polybar/launch.sh
 
