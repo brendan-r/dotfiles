@@ -19,6 +19,9 @@ declare -a FILES_TO_SYMLINK=(
     "git/gitconfig"
     "git/gitignore"
 
+    "mac-stuff/yabairc"
+    "mac-stuff/skhdrc"
+
     "vim/vim"
     "vim/vimrc"
     "vim/gvimrc"
