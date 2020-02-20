@@ -5,6 +5,9 @@
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+# Supress annoying apple message about zsh in the terminal
+export BASH_SILENCE_DEPRECATION_WARNING=1
+
 # Make emacsclient the default editor
 export EDITOR="emacsclient"
 
