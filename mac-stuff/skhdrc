@@ -159,7 +159,7 @@ lctrl + shift - l : yabai -m window --warp east
 
 
 # Open programs
-lctrl - t : open -a Terminal ~
+lctrl - t : /Applications/Kitty.app/Contents/MacOS/kitty --single-instance -d ~
 lctrl - e : emacsclient -n -c
 
 # Close focussed window (mimicing 'standard' OS shortcut)
