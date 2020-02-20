@@ -1,0 +1,4 @@
+#!/bin/bash
+
+alias mpv='open -na /Applications/mpv.app'
+export TEST_MAC_VAR=1
