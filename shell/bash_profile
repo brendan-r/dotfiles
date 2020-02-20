@@ -44,6 +44,7 @@ source_bash_files() {
         "bash_functions"
         "bash_options"
         "bash_prompt"
+        "bash_mac_stuff"
         "bash.local"  # for local settings that should
                       # not be under version control
     )
