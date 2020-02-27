@@ -165,6 +165,8 @@ lctrl - 0x18 : yabai -m window --resize right:50:0 ; yabai -m window --resize le
 lctrl + shift - 0x18 : yabai -m window --resize top:0:-20 ; yabai -m window --resize bottom:0:-20
 lctrl + shift - 0x1B : yabai -m window --resize bottom:0:20 ; yabai -m window --resize top:0:20
 
+# Toggle split type for active window 0x2A is \
+lctrl - 0x2A : yabai -m window --toggle split
 
 # Open programs
 lctrl - t : /Applications/Kitty.app/Contents/MacOS/kitty --single-instance -d ~
