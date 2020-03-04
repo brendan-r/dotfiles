@@ -1,4 +1,4 @@
-
+# -*- mode: conf -*-
 
 # Keyboard stuff ------------------------------------------------------
 
@@ -16,7 +16,6 @@ rctrl - f : skhd -k "tab"
 rctrl - space : skhd -k "backspace"
 rctrl - 0x29 : skhd -k "end"
 
-
 # Shifted versions
 rctrl + shift - i : skhd -k "shift - up"
 rctrl + shift - k : skhd -k "shift - down"
@@ -31,11 +30,29 @@ rctrl + shift - f : skhd -k "shift - tab"
 rctrl + shift - space : skhd -k "shift - backspace"
 rctrl + shift - 0x29 : skhd -k "shift - end"
 
+
 # Cmd versions
-rctrl + cmd - i : skhd -k "cmd - up"
-rctrl + cmd - k : skhd -k "cmd - down"
-rctrl + cmd - j : skhd -k "cmd - left"
-rctrl + cmd - l : skhd -k "cmd - right"
+#
+# Note: You're used to Control-left/right moving backward/forward a
+# word on Linux distributions. Emacs still behaves this way, but the
+# rest of macOS does not (e.g. web browsers). Changing the default
+# behavior here so that the keys should (generally) work as you expect
+rctrl + cmd - i [
+      *       : skhd -k "alt - up"
+      "Emacs" : skhd -k "cmd - up"
+]
+rctrl + cmd - k [
+      *       : skhd -k "alt - down"
+      "Emacs" : skhd -k "cmd - up"
+]
+rctrl + cmd - l [
+      *       : skhd -k "alt - right"
+      "Emacs" : skhd -k "cmd - right"
+]
+rctrl + cmd - j [
+      *       : skhd -k "alt - left"
+      "Emacs" : skhd -k "cmd - left"
+]
 rctrl + cmd - p : skhd -k "cmd - delete"
 rctrl + cmd - o : skhd -k "cmd - pageup"
 rctrl + cmd - u : skhd -k "cmd - pagedown"
@@ -44,6 +61,33 @@ rctrl + cmd - h : skhd -k "cmd - home"
 rctrl + cmd - f : skhd -k "cmd - tab"
 rctrl + cmd - space : skhd -k "cmd - backspace"
 rctrl + cmd - 0x29 : skhd -k "cmd - end"
+
+# Cmd + Shifted versions
+rctrl + cmd + shift - i [
+      *       : skhd -k "shift + alt - up"
+      "Emacs" : skhd -k "shift + cmd - up"
+]
+rctrl + cmd + shift - k [
+      *       : skhd -k "shift + alt - down"
+      "Emacs" : skhd -k "shift + cmd - up"
+]
+rctrl + cmd + shift - l [
+      *       : skhd -k "shift + alt - right"
+      "Emacs" : skhd -k "shift + cmd - right"
+]
+rctrl + cmd + shift - j [
+      *       : skhd -k "shift + alt - left"
+      "Emacs" : skhd -k "shift + cmd - left"
+]
+rctrl + cmd + shift - p : skhd -k "shift + cmd - delete"
+rctrl + cmd + shift - o : skhd -k "shift + cmd - pageup"
+rctrl + cmd + shift - u : skhd -k "shift + cmd - pagedown"
+rctrl + cmd + shift - m : skhd -k "shift + cmd - return"
+rctrl + cmd + shift - h : skhd -k "shift + cmd - home"
+rctrl + cmd + shift - f : skhd -k "shift + cmd - tab"
+rctrl + cmd + shift - space : skhd -k "shift + cmd - backspace"
+rctrl + cmd + shift - 0x29 : skhd -k "shift + cmd - end"
+
 
 # Alt versions
 rctrl + alt - i : skhd -k "alt - up"
@@ -58,20 +102,6 @@ rctrl + alt - h : skhd -k "alt - home"
 rctrl + alt - f : skhd -k "alt - tab"
 rctrl + alt - space : skhd -k "alt - backspace"
 rctrl + alt - 0x29 : skhd -k "alt - end"
-
-# Cmd + Shifted versions
-rctrl + cmd + shift - i : skhd -k "shift + cmd - up"
-rctrl + cmd + shift - k : skhd -k "shift + cmd - down"
-rctrl + cmd + shift - j : skhd -k "shift + cmd - left"
-rctrl + cmd + shift - l : skhd -k "shift + cmd - right"
-rctrl + cmd + shift - p : skhd -k "shift + cmd - delete"
-rctrl + cmd + shift - o : skhd -k "shift + cmd - pageup"
-rctrl + cmd + shift - u : skhd -k "shift + cmd - pagedown"
-rctrl + cmd + shift - m : skhd -k "shift + cmd - return"
-rctrl + cmd + shift - h : skhd -k "shift + cmd - home"
-rctrl + cmd + shift - f : skhd -k "shift + cmd - tab"
-rctrl + cmd + shift - space : skhd -k "shift + cmd - backspace"
-rctrl + cmd + shift - 0x29 : skhd -k "shift + cmd - end"
 
 # Alt + Shifted versions
 rctrl + alt + shift - i : skhd -k "shift + alt - up"
