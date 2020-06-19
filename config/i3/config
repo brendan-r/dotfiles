@@ -35,8 +35,15 @@ floating_modifier $mod
 # kill focused window
 bindsym $mod+p kill
 
-# start dmenu (a program launcher)
-bindsym $mod+d exec dmenu_run
+# Bring up Rofi
+bindsym $mod+d exec rofi -show combi -theme base16-tomorrow-night-eighties \
+    -modi fb:~/.local/share/rofi/fb.sh
+
+# The mac reflexes seem to be taking over...
+bindsym Control+space exec rofi -show combi -theme base16-tomorrow-night-eighties \
+    -modi fb:~/.local/share/rofi/fb.sh
+
+
 # There also is the (new) i3-dmenu-desktop which only displays applications
 # shipping a .desktop file. It is a wrapper around dmenu, so you need that
 # installed.
