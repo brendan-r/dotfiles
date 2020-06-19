@@ -33,6 +33,7 @@ main() {
 
     # Simple, unreliable thing for config files, for now
     ln -s  $HOME/projects/dotfiles/config/* $HOME/.config/
+    ln -s  $HOME/projects/dotfiles/local-share/* $HOME/.local/share/
 
     # Complicated copying thing for the above
     local i=""

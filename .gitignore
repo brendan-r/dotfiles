@@ -3,3 +3,5 @@
 .RData
 dotfiles.Rproj
 vim/vim/
+/local-share/rofi/rofi_fb_history
+/local-share/rofi/rofi_fb_prevloc

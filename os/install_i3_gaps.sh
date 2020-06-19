@@ -17,7 +17,7 @@ sudo apt-get install -y libxcb1-dev libxcb-keysyms1-dev libpango1.0-dev      \
      libxcb-composite0-dev
 
 # Other stuff that you like
-sudo apt-get install -y dunst wmctrl compton i3lock xautolock
+sudo apt-get install -y dunst wmctrl compton i3lock xautolock rofi recoll python3-recoll
 
 # Download and build the project ---------------------------------------------
 
