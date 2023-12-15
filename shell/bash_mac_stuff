@@ -1,4 +1,4 @@
 #!/bin/bash
-
+alias R='/opt/homebrew/bin/R --no-save'
 alias mpv='open -na /Applications/mpv.app'
 export TEST_MAC_VAR=1
