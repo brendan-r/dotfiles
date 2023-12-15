@@ -43,7 +43,7 @@ rctrl + cmd - i [
 ]
 rctrl + cmd - k [
       *       : skhd -k "alt - down"
-      "Emacs" : skhd -k "cmd - up"
+      "Emacs" : skhd -k "cmd - down"
 ]
 rctrl + cmd - l [
       *       : skhd -k "alt - right"
@@ -53,13 +53,13 @@ rctrl + cmd - j [
       *       : skhd -k "alt - left"
       "Emacs" : skhd -k "cmd - left"
 ]
-rctrl + cmd - p : skhd -k "cmd - delete"
+rctrl + cmd - p : skhd -k "alt - delete"
 rctrl + cmd - o : skhd -k "cmd - pageup"
 rctrl + cmd - u : skhd -k "cmd - pagedown"
 rctrl + cmd - m : skhd -k "cmd - return"
 rctrl + cmd - h : skhd -k "cmd - home"
 rctrl + cmd - f : skhd -k "cmd - tab"
-rctrl + cmd - space : skhd -k "cmd - backspace"
+rctrl + cmd - space : skhd -k "alt - backspace"
 rctrl + cmd - 0x29 : skhd -k "cmd - end"
 
 # Cmd + Shifted versions
@@ -69,7 +69,7 @@ rctrl + cmd + shift - i [
 ]
 rctrl + cmd + shift - k [
       *       : skhd -k "shift + alt - down"
-      "Emacs" : skhd -k "shift + cmd - up"
+      "Emacs" : skhd -k "shift + cmd - down"
 ]
 rctrl + cmd + shift - l [
       *       : skhd -k "shift + alt - right"
@@ -79,7 +79,7 @@ rctrl + cmd + shift - j [
       *       : skhd -k "shift + alt - left"
       "Emacs" : skhd -k "shift + cmd - left"
 ]
-rctrl + cmd + shift - p : skhd -k "shift + cmd - delete"
+rctrl + cmd + shift - p : skhd -k "shift + alt - delete"
 rctrl + cmd + shift - o : skhd -k "shift + cmd - pageup"
 rctrl + cmd + shift - u : skhd -k "shift + cmd - pagedown"
 rctrl + cmd + shift - m : skhd -k "shift + cmd - return"
@@ -178,8 +178,17 @@ lctrl + shift - 0x1B : yabai -m window --resize bottom:0:20 ; yabai -m window --
 lctrl - 0x2A : yabai -m window --toggle split
 
 # Open programs
+
+# Terminal
 lctrl - t : /Applications/Kitty.app/Contents/MacOS/kitty --single-instance -d ~
+
+# Editor
 lctrl - e : emacsclient -n -c
+
+# Browser
+lctrl - b : /Applications/Firefox.app/Contents/MacOS/firefox
+
+lctrl + shift - r : yabai -m space --balance
 
 # Close focussed window (mimicing 'standard' OS shortcut)
 lctrl - p : skhd --key "cmd - w"
