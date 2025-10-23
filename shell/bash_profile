@@ -105,10 +105,14 @@ vim() {
 
 
 PATH="$HOME/anaconda3/bin:$PATH"
-PATH="/usr/local/bin:$PATH"
 PATH="$HOME/bin/hub-linux/bin:$PATH"
 PATH="$PATH:$HOME/projects/dotfiles/bin"
 PATH="$HOME/anaconda3/bin:$PATH"
+PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH"
+PATH="/usr/local/bin:$PATH"
+
+PATH=":$PATH"
+
 
 export PATH
 
@@ -123,4 +127,3 @@ unset -f source_bash_files
 # Clear system messages (e.g.: system copyright notice, the
 # date and time of the last login, the message of the day, etc.)
 clear
-
