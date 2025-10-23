@@ -13,6 +13,8 @@ rctrl - u : skhd -k "pagedown"
 rctrl - m : skhd -k "return"
 rctrl - h : skhd -k "home"
 rctrl - f : skhd -k "tab"
+rctrl - e : skhd -k "escape"
+rctrl - n : skhd -k "0x18" # Equals sign
 rctrl - space : skhd -k "backspace"
 rctrl - 0x29 : skhd -k "end"
 
@@ -27,6 +29,7 @@ rctrl + shift - u : skhd -k "shift - pagedown"
 rctrl + shift - m : skhd -k "shift - return"
 rctrl + shift - h : skhd -k "shift - home"
 rctrl + shift - f : skhd -k "shift - tab"
+rctrl + shift - n : skhd -k "shift - 0x18" # + sign
 rctrl + shift - space : skhd -k "shift - backspace"
 rctrl + shift - 0x29 : skhd -k "shift - end"
 
@@ -186,7 +189,7 @@ lctrl - t : /Applications/Kitty.app/Contents/MacOS/kitty --single-instance -d ~
 lctrl - e : emacsclient -n -c
 
 # Browser
-lctrl - b : /Applications/Firefox.app/Contents/MacOS/firefox
+# lctrl - b : /Applications/Firefox.app/Contents/MacOS/firefox
 
 lctrl + shift - r : yabai -m space --balance
 
