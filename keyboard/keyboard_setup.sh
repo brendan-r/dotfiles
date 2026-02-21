@@ -1,19 +1,9 @@
-# Note: You should replace these with symlinks...
+# Note: At least on Debian Trixie, the binary will be accessible as
+# 'keyd.rvaiya' at /usr/bin/keyd.rvaiya
+sudo apt install keyd
 
-# Copy the Xmodmap file over
-cp ~/projects/dotfiles/keyboard/.Xmodmap ~/.Xmodmap
+# The config file has to live under /etc/ to act system wide.
+sudo ln -s ~/projects/dotfiles/config/keyd/default.conf /etc/keyd/default.conf
 
-# Copy the main xkb file to the right pace
-sudo cp ~/projects/dotfiles/keyboard/us /usr/share/X11/xkb/symbols/us
-
-# Copy the basic types file
-sudo cp ~/projects/dotfiles/keyboard/basic /usr/share/X11/xkb/types/basic
-
-# Copy the init file over
-cp ~/projects/dotfiles/keyboard/.keyboard_startup ~/.keyboard_startup
-
-# Remove the cached files
-sudo rm -f /var/lib/xkb/*.xkm
-
-# Run Xmodmap
-xmodmap ~/.Xmodmap
+# Load the config
+sudo keyd.rvaiya reload
