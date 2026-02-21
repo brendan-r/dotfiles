@@ -5,10 +5,25 @@
 # this file and re-run i3-config-wizard(1).
 #
 
+
+# Set the background color
+exec_always --no-startup-id hsetroot -solid "#5f676a"
+
+# Use dex to activate the usual gnome services
+exec --no-startup-id dex --autostart --environment i3
+
+# Use a compositor
+exec_always --no-startup-id picom -b
+
+# Start the secrets service running
+exec_always --no-startup-id gnome-keyring-daemon --start --components=secrets
+
+# Add the policykity authentication agent
+exec --no-startup-id /usr/lib/x86_64-linux-gnu/polkit-mate-authentication-agent-1
+
 # i3 config file (v4)
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
-
 set $mod Mod4
 
 # Font for window titles. Will also be used by the bar unless a different font
@@ -220,10 +235,12 @@ bindsym $mod+period     gaps inner current minus 5
 # Programs ---------------------------------------------------------------------
 
 # Mod + e for Emacs
-bindsym $mod+e exec /usr/bin/emacs-gui-client -c
+bindsym $mod+e exec emacs-gui-client -c
 
 # Mod + t for terminal
-bindsym $mod+t  exec i3-sensible-terminal
+exec_always --no-startup-id kitty --single-instance --listen-on unix:/tmp/mykitty --start-as=hidden
+
+bindsym $mod+t exec kitty --single-instance
 
 # Mod + b for browser
 bindsym $mod+b exec firefox
@@ -252,15 +269,15 @@ hide_edge_borders smart
 # Network manger is pretty useful
 exec --no-startup-id nm-applet
 # Use compton
-exec --no-startup-id compton --config $HOME/.config/compton.conf -b
+# exec --no-startup-id compton --config $HOME/.config/compton.conf -b
 
 # Get the emacs server running
-exec --no-startup-id /usr/bin/emacs26 --daemon
+exec --no-startup-id /usr/bin/emacs --daemon
 
 exec_always --no-startup-id $HOME/.config/polybar/launch.sh
 
 bindsym $mod+Control+l exec bash -c 'i3lock --color=000000'
-exec_always xautolock -time 5 -locker 'i3lock --colour=000000'
+exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork --colour 000000
 
 
 # Colours -------------------------------------------------------------------

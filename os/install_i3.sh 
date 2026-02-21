@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Taken from https://github.com/Airblader/i3/wiki/Compiling-&-Installing
+
+# Dependencies --------------------------------------------------------------
+
+# Other stuff that you like
+sudo apt install -y i3 dunst wmctrl rofi xss-lock polybar network-manager-gnome
+
+
+# Download and build the project ---------------------------------------------
+
+cd ~/projects
+rm -rf i3-gaps
+
+# Let X know that you want to use this -----------------------------------------
+echo "exec i3" > ~/.xinitrc
+
+# Stop GNOME messing with it when you opnen Nautilus ---------------------------
+gsettings set org.gnome.desktop.background show-desktop-icons false
