@@ -21,6 +21,10 @@ exec_always --no-startup-id gnome-keyring-daemon --start --components=secrets
 # Add the policykity authentication agent
 exec --no-startup-id /usr/lib/x86_64-linux-gnu/polkit-mate-authentication-agent-1
 
+
+# Near the top of your i3 config
+exec --no-startup-id dunst
+
 # i3 config file (v4)
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
@@ -51,12 +55,11 @@ floating_modifier $mod
 bindsym $mod+p kill
 
 # Bring up Rofi
-bindsym $mod+d exec rofi -show combi -theme base16-tomorrow-night-eighties \
-    -modi fb:~/.local/share/rofi/fb.sh
-
-# The mac reflexes seem to be taking over...
 bindsym Control+space exec rofi -show combi -theme base16-tomorrow-night-eighties \
     -modi fb:~/.local/share/rofi/fb.sh
+
+
+exec --no-startup-id export QT_QPA_PLATFORMTHEME=qt5ct
 
 
 # There also is the (new) i3-dmenu-desktop which only displays applications
