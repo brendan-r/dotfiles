@@ -124,6 +124,11 @@ unset -f get_os
 unset -f main
 unset -f source_bash_files
 
+export QT_QPA_PLATFORMTHEME=qt6ct
+
 # Clear system messages (e.g.: system copyright notice, the
 # date and time of the last login, the message of the day, etc.)
 clear
+
+# Created by `pipx` on 2026-02-28 21:57:11
+export PATH="$PATH:/home/b/.local/bin"

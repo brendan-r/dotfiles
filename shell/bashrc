@@ -1,1 +1,4 @@
 [ -n "$PS1" ] && source ~/.bash_profile
+
+# Created by `pipx` on 2026-02-28 21:57:11
+export PATH="$PATH:/home/b/.local/bin"
