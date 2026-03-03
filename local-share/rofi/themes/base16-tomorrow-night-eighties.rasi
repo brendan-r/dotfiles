@@ -144,3 +144,15 @@ textbox-prompt-colon {
     margin:           0px 0.3000em 0.0000em 0.0000em ;
     text-color:       inherit;
 }
+
+/* Fix for Rofi 1.6+ black text issue */
+element-text {
+    background-color: inherit;
+    text-color:       inherit;
+}
+
+element-icon {
+    size:             1.0em;
+    background-color: inherit;
+    text-color:       inherit;
+}
