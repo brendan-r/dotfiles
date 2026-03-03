@@ -1,0 +1,9 @@
+/* This forces all text elements to be white */
+* {
+    foreground: #ffffff;
+    text-color: #ffffff;
+}
+
+element-text {
+    text-color: inherit;
+}
