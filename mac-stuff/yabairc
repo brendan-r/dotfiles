@@ -50,5 +50,7 @@ yabai -m config window_gap                   10
 yabai -m rule --add app="/Applications/Utilities/XQuartz.app" manage=on
 yabai -m rule --add app="^System Preferences$" manage=off
 yabai -m rule --add app="mpv" manage=on
+yabai -m rule --add app="^Visual Studio Code$" manage=on border=off
+
 
 echo "yabai configuration loaded.."
