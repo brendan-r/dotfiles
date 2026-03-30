@@ -277,7 +277,13 @@ exec --no-startup-id nm-applet
 # Get the emacs server running
 exec --no-startup-id /usr/bin/emacs --daemon
 
+# Get polybar going
 exec_always --no-startup-id $HOME/.config/polybar/launch.sh
+
+# Be able to use an external monitor (this is annoying)
+# autorandr has files in ~/.config
+exec_always --no-startup-id autorandr --change
+
 
 bindsym $mod+Control+l exec bash -c 'i3lock --color=000000'
 exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork --colour 000000
