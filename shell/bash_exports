@@ -25,9 +25,7 @@ export HISTIGNORE="&:[bf]g:c:clear:history:exit:q:qh:ll:ls -l:pwd:* --help"
 # command history (default value is 500)
 export HISTSIZE=10000
 
-# Prefer US English and use UTF-8 encoding
-export LANG="en_US"
-export LC_ALL="en_US.UTF-8"
+# Preserve the system/user locale; minimal Debian may not have en_US.UTF-8.
 
 # Use custom `less` colors for man pages
 # https://www.gnu.org/software/termutils/manual/termutils-2.0/html_chapter/tput_1.html
@@ -48,18 +46,32 @@ export MANPAGER="less -X"
 export BIBINPUTS=${HOME}/bib
 
 # I've got a bad feeling about this
-export PYTHONPATH="/home/br/anaconda3/bin/python"
+# Machine-specific Python configuration belongs in ~/.bash.local.
 
 # These should allow you to use GPG agent for SSH auth, for your YubiKey
 # https://www.jfry.me/articles/2015/gpg-smartcard/
 if [ -f "${HOME}/.gpg-agent-info" ]; then
+     # shellcheck disable=SC1091
      . "${HOME}/.gpg-agent-info"
        export GPG_AGENT_INFO
        export SSH_AUTH_SOCK
        export SSH_AGENT_PID
 fi
 
-# NVM crap
+# Optional runtime managers are loaded only in interactive sessions.
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+if [[ $- == *i* ]]; then
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+        # shellcheck disable=SC1091
+        . "$NVM_DIR/nvm.sh"
+    fi
+    if [ -s "$NVM_DIR/bash_completion" ]; then
+        # shellcheck disable=SC1091
+        . "$NVM_DIR/bash_completion"
+    fi
+fi
+
+# Preserve the Linux desktop theme preference without applying it on macOS.
+if [ "${DOTFILES_OS:-}" = linux ]; then
+    export QT_QPA_PLATFORMTHEME=qt6ct
+fi

@@ -1,0 +1,10 @@
+{
+  "macos": {
+    "image": "ghcr.io/cirruslabs/macos-tahoe-vanilla@sha256:eeec54bfe1f076e27786c5d92b89187a05b1d109b5071eb2dcdf02d596e34640",
+    "source_tag": "latest"
+  },
+  "debian": {
+    "image": "ghcr.io/cirruslabs/debian@sha256:26d5e519b5f25ed7e165cc2e138695a3541b0b7e53f267bb63bb08a49588bdfa",
+    "source_tag": "trixie"
+  }
+}

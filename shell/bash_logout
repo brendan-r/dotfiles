@@ -1,4 +1,4 @@
 #!/bin/bash
-
-# Clear console on exit
-[ "$SHLVL" == 1 ] && [ -x "$(command -v clear)" ] && clear
+if [[ $- == *i* ]] && [ -t 1 ] && [ "${TERM:-dumb}" != dumb ] && command -v clear >/dev/null 2>&1; then
+    clear
+fi

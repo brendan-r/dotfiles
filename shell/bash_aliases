@@ -34,19 +34,13 @@ fi
 
 # Advanced Packaging Tool
 
-alias apti="sudo apt install"
-alias aptr="sudo apt remove"
-alias apts="sudo apt search"
-alias aptu="sudo apt update && \
-            sudo apt upgrade"
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-# Update
-alias update="aptu && \
-              npmi -g npm && \
-              npmu -g"
+if [ "${DOTFILES_OS:-}" = linux ]; then
+    alias apti="sudo apt install"
+    alias aptr="sudo apt remove"
+    alias apts="sudo apt search"
+    alias aptu="sudo apt update && sudo apt upgrade"
+    alias update="aptu"
+fi
 
 # ----------------------------------------------------------------------
 # | Shorter Commands                                                   |
@@ -66,26 +60,14 @@ alias rm="rm -rf"
 # ----------------------------------------------------------------------
 # | Personal stuff                                                     |
 # ----------------------------------------------------------------------
-# (Re)Load keyboard map
-alias k="sh ~/.keyboard_startup"
-# Restart the network manager re:wifi
-alias wifi="sudo service network-manager restart"
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-# Copy to clipboard
-alias cc="xclip -selection clip"
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-# Hide/Show desktop icons
-alias hide-desktop-icons="gsettings set org.gnome.desktop.background show-desktop-icons false"
-alias show-desktop-icons="gsettings set org.gnome.desktop.background show-desktop-icons true"
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-# Open
-alias o="xdg-open"
-
-# Set 2.7 as the default Python
-# alias python=/usr/bin/python3
+if [ "${DOTFILES_OS:-}" = linux ]; then
+    alias k="sh ~/.keyboard_startup"
+    alias wifi="sudo service network-manager restart"
+    alias cc="xclip -selection clip"
+    alias hide-desktop-icons="gsettings set org.gnome.desktop.background show-desktop-icons false"
+    alias show-desktop-icons="gsettings set org.gnome.desktop.background show-desktop-icons true"
+    alias o="xdg-open"
+else
+    alias cc="pbcopy"
+    alias o="open"
+fi

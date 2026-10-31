@@ -1,0 +1,689 @@
+#!/usr/bin/env python3
+"""Host orchestration only. Candidate shell code runs exclusively inside disposable VMs."""
+import argparse
+import codecs
+import contextlib
+import json
+import re
+import selectors
+import os
+from pathlib import Path
+import shlex
+import signal
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+
+ROOT = Path(__file__).resolve().parent.parent
+STATE = Path(os.environ.get('DOTFILES_TEST_STATE', str(Path.home() / 'Library/Caches/dotfiles-tests')))
+IMAGES = json.loads((ROOT / 'tests/images.json').read_text())
+GIT = '/usr/bin/git'
+BASE_PREFIX = 'dotfiles-baseline-'
+USER = 'dotfiles'
+ACCESS = None
+SHELL_FILES = ['dotfiles', 'os/create_symbolic_links.sh'] + [
+    'shell/' + n for n in ['bash_profile', 'bashrc', 'bash_exports', 'bash_aliases',
+    'bash_functions', 'bash_options', 'bash_prompt', 'bash_logout', 'bash_mac_stuff']]
+FORMAT = 'tap'
+COLOR = False
+INTERACTIVE = False
+COLUMNS = 80
+REPORTS = {}
+
+
+class TestFailure(RuntimeError):
+    """A completed Bats suite reported failing assertions."""
+
+
+def choose_format(requested, *, tty=None, environ=None):
+    env = os.environ if environ is None else environ
+    tty = sys.stdout.isatty() if tty is None else tty
+    pretty = requested == 'pretty' or (requested == 'auto' and tty and
+              env.get('TERM', 'dumb') != 'dumb' and 'NO_COLOR' not in env)
+    return ('pretty' if pretty else 'tap'), pretty and 'NO_COLOR' not in env
+
+
+def message(text, color=None):
+    if COLOR and color:
+        text = f'\033[{color}m{text}\033[0m'
+    print('# ' + text, flush=True)
+
+
+@contextlib.contextmanager
+def stage(label):
+    started = time.monotonic()
+    message('→ ' + label if FORMAT == 'pretty' else 'START ' + label)
+    try:
+        yield
+    except BaseException as exc:
+        message(f'{"✗" if FORMAT == "pretty" else "FAIL"} {label} '
+                f'({time.monotonic() - started:.1f}s): {exc}', 31)
+        raise
+    else:
+        message(f'{"✓" if FORMAT == "pretty" else "DONE"} {label} '
+                f'({time.monotonic() - started:.1f}s)', 32)
+
+
+def terminate_process(proc):
+    # Every owned subprocess starts a new group, including SSH proxy children.
+    try:
+        os.killpg(proc.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        proc.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        pass
+    # The group may outlive its leader.
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    proc.wait(timeout=3)
+
+
+class PlainLog:
+    """Save completed terminal lines, without ANSI or overwritten progress rows.
+
+    Keep escape sequences and CRLF pairs intact across arbitrary read boundaries.
+    A partial last line is saved on close, including after timeout/interruption.
+    """
+    def __init__(self, stream):
+        self.stream = stream
+        self.line = bytearray()
+        self.escape = bytearray()
+        self.carriage = False
+
+    def write(self, data):
+        for char in data:
+            if self.escape:
+                self.escape.append(char)
+                if len(self.escape) == 2 and char != ord('['):
+                    self.escape.clear()
+                elif len(self.escape) > 2 and 0x40 <= char <= 0x7e:
+                    self.escape.clear()
+                continue
+            if char == 27:
+                self.escape.append(char)
+            elif char == 10:
+                self.stream.write(self.line + b'\n')
+                self.line.clear()
+                self.carriage = False
+            elif char == 13:
+                self.carriage = True
+            else:
+                if self.carriage:
+                    self.line.clear()
+                    self.carriage = False
+                self.line.append(char)
+        self.stream.flush()
+
+    def close(self):
+        if self.line:
+            self.stream.write(self.line)
+            self.line.clear()
+        self.stream.flush()
+
+
+def run(args, *, timeout=120, check=True, stream_log=None, **kwargs):
+    args = [str(a) for a in args]
+    kwargs.setdefault('stdout', subprocess.PIPE)
+    kwargs.setdefault('stderr', subprocess.STDOUT)
+    kwargs['start_new_session'] = True
+    if stream_log is not None:
+        kwargs['stdout'] = subprocess.PIPE
+        kwargs['stderr'] = subprocess.STDOUT
+        kwargs.pop('text', None)
+    proc = subprocess.Popen(args, **kwargs)
+    plain_log = PlainLog(stream_log) if stream_log is not None else None
+    try:
+        if stream_log is None:
+            stdout, stderr = proc.communicate(timeout=timeout)
+        else:
+            stdout = bytearray()
+            stderr = None
+            decoder = codecs.getincrementaldecoder('utf-8')('replace')
+            deadline = time.monotonic() + timeout
+            with selectors.DefaultSelector() as selector:
+                selector.register(proc.stdout, selectors.EVENT_READ)
+                while selector.get_map():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise subprocess.TimeoutExpired(args, timeout)
+                    for key, _events in selector.select(min(remaining, 0.2)):
+                        chunk = os.read(key.fd, 65536)
+                        if not chunk:
+                            selector.unregister(key.fileobj)
+                            break
+                        plain_log.write(chunk)
+                        stdout.extend(chunk)
+                        sys.stdout.write(decoder.decode(chunk))
+                        sys.stdout.flush()
+                sys.stdout.write(decoder.decode(b'', final=True))
+                sys.stdout.flush()
+            proc.wait(timeout=max(0.001, deadline - time.monotonic()))
+            stdout = bytes(stdout)
+    except BaseException:
+        terminate_process(proc)
+        raise
+    finally:
+        if plain_log is not None:
+            plain_log.close()
+        if proc.stdout:
+            proc.stdout.close()
+        if proc.stderr:
+            proc.stderr.close()
+    result = subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
+    if check and result.returncode:
+        if stdout and stream_log is None:
+            print(stdout.decode(errors='replace') if isinstance(stdout, bytes) else stdout,
+                  end='', flush=True)
+        raise subprocess.CalledProcessError(result.returncode, args, stdout, stderr)
+    return result
+
+
+def output(args, **kwargs):
+    return run(args, stdout=subprocess.PIPE, text=True, **kwargs).stdout.strip()
+
+
+def shell_files(root):
+    files = list(SHELL_FILES)
+    files += [str(path.relative_to(root)) for path in (root / 'tests').rglob('*')
+              if path.is_file() and 'vendor' not in path.parts and
+              (path.suffix in ('.sh', '.bash', '.bats') or path.name == 'format-pretty')]
+    return sorted(set(files))
+
+
+def host_checks(mode, root=None):
+    root = ROOT if root is None else root
+    with tempfile.TemporaryDirectory(prefix='dotfiles-lint-') as tmp:
+        manifest = Path(tmp) / 'shell-files'
+        manifest.write_text('\n'.join(shell_files(root)) + '\n')
+        env = {**os.environ, 'DOTFILES_ROOT': str(root), 'DOTFILES_SHELL_MANIFEST': str(manifest),
+               'DOTFILES_HOST_MODE': mode, 'DOTFILES_SHELLCHECK': shutil.which(os.environ.get('SHELLCHECK', 'shellcheck')) or '',
+               'DOTFILES_TEST_COLOR': str(int(COLOR)), 'BATS_TEST_NAME_PREFIX': '[host] ',
+               'DOTFILES_TEST_INTERACTIVE': str(int(INTERACTIVE)), 'DOTFILES_TEST_COLUMNS': str(COLUMNS)}
+        result_dir = ROOT / '.test-results' / ('dotfiles-test-host-' + uuid.uuid4().hex[:8])
+        result_dir.mkdir(parents=True)
+        REPORTS[mode] = {'logs': str(result_dir)}
+        formatter = str(root / 'tests/format-pretty') if FORMAT == 'pretty' else 'tap'
+        with (result_dir / 'host.log').open('wb') as log:
+            result = run(['/bin/bash', root / 'tests/vendor/bats-core/bin/bats', '--timing',
+                          '--print-output-on-failure', '--formatter', formatter, root / 'tests/host.bats'],
+                         env=env, stream_log=log, check=False)
+        message('Host log: ' + str(result_dir / 'host.log'))
+        if result.returncode:
+            raise TestFailure(f'{mode} failed; logs: {result_dir}')
+
+
+def tart_binary():
+    value = os.environ.get('TART') or shutil.which('tart')
+    if not value:
+        value = str(STATE / 'tools/tart-2.41.1/tart.app/Contents/MacOS/tart')
+    if not Path(value).is_file():
+        raise RuntimeError('Tart not found. Install Tart, or set TART to its executable. See tests/README.md.')
+    return value
+
+
+def tart(*args, **kwargs):
+    return run([tart_binary(), *args], env={**os.environ, 'TART_NO_AUTO_PRUNE': '1'}, **kwargs)
+
+
+def public_key():
+    key = ACCESS / 'id_ed25519'
+    if not key.exists():
+        message('Creating temporary VM-only SSH credentials')
+        run(['/usr/bin/ssh-keygen', '-q', '-t', 'ed25519', '-N', '',
+             '-C', 'dotfiles-disposable-vms', '-f', key])
+    return key.with_suffix('.pub').read_text().strip()
+
+
+def authorize_admin(name):
+    # Rotate only our harness keys; retain any unrelated authorized keys.
+    command = r'''set -e
+umask 077
+mkdir -p "$HOME/.ssh"
+keys="$HOME/.ssh/authorized_keys"
+stage=$(mktemp "$HOME/.ssh/.dotfiles-keys.XXXXXX")
+trap 'rm -f "$stage"' EXIT
+if [ -f "$keys" ]; then awk '$NF != "dotfiles-disposable-vms"' "$keys" > "$stage"; fi
+printf '%s\n' ''' + shlex.quote(public_key()) + r''' >> "$stage"
+chmod 600 "$stage"
+mv "$stage" "$keys"
+'''
+    tart('exec', name, '/bin/bash', '-ec', command)
+
+
+def authorize_test_user(name):
+    command = 'sudo -n mkdir -p /Users/dotfiles/.ssh; printf "%s\\n" ' + shlex.quote(public_key()) + \
+        ' | sudo -n tee /Users/dotfiles/.ssh/authorized_keys >/dev/null; ' + \
+        'sudo -n chown -R dotfiles:staff /Users/dotfiles/.ssh; ' + \
+        'sudo -n chmod 700 /Users/dotfiles/.ssh; sudo -n chmod 600 /Users/dotfiles/.ssh/authorized_keys'
+    ssh_agent(name, '/bin/bash -ec ' + shlex.quote(command), user='admin')
+
+
+def ssh_agent(name, command, *, user=USER, tty=False, **kwargs):
+    # SSH's connection is opened on guest loopback by the RPC agent. The host
+    # never connects to a guest IP. sshd supplies macOS's normal login context;
+    # the RPC daemon itself is not granted access to protected user files.
+    proxy = shlex.join([tart_binary(), 'exec', '-i', name, '/usr/bin/nc', '127.0.0.1', '22'])
+    return run(['/usr/bin/ssh', '-F', '/dev/null', '-o', 'ProxyCommand=' + proxy,
+                '-o', 'HostKeyAlias=' + name, '-o', 'StrictHostKeyChecking=accept-new',
+                '-o', 'UserKnownHostsFile=' + str(ACCESS / 'known_hosts'),
+                '-i', ACCESS / 'id_ed25519', '-o', 'IdentityAgent=none',
+                '-o', 'IdentitiesOnly=yes', '-o', 'ForwardAgent=no', '-o', 'ForwardX11=no',
+                '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10',
+                '-o', 'ServerAliveInterval=10', '-o', 'ServerAliveCountMax=3',
+                *(['-tt'] if tty else []), user + '@localhost', command], **kwargs)
+
+
+def inventory():
+    return json.loads(tart('list', '--format', 'json', stdout=subprocess.PIPE, text=True).stdout)
+
+
+def exists(name):
+    return any(v['Name'] == name and v['Source'] == 'local' for v in inventory())
+
+
+def wait_agent(name, seconds=120):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            result = tart('exec', name, 'true', timeout=3, check=False,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if result.returncode == 0:
+                return
+        except subprocess.TimeoutExpired:
+            pass
+        time.sleep(1)
+    raise RuntimeError(f'Tart guest agent did not become ready: {name}')
+
+
+@contextlib.contextmanager
+def agent_setup_disk():
+    # A tiny read-only installer disk avoids host directory/clipboard sharing.
+    with tempfile.TemporaryDirectory(prefix='dotfiles-agent-setup-') as tmp:
+        directory = Path(tmp)
+        source = directory / 'source'
+        source.mkdir()
+        shutil.copy2(ROOT / 'tests/setup-macos-agent.sh', source / 'setup.sh')
+        disk = directory / 'setup.iso'
+        run(['/usr/bin/hdiutil', 'makehybrid', '-iso', '-joliet', '-default-volume-name',
+             'DotfilesSetup', '-o', disk, source], stdout=subprocess.DEVNULL)
+        yield disk
+
+
+@contextlib.contextmanager
+def cleanup(label, action):
+    try:
+        yield
+    finally:
+        primary = sys.exc_info()[1]
+        try:
+            with stage(label):
+                action()
+        except BaseException as exc:
+            if primary is not None:
+                # Keep interruption semantics while still exposing the cleanup failure.
+                message(f'Cleanup failed after {primary!r}: {exc}', 31)
+                if isinstance(primary, KeyboardInterrupt):
+                    raise primary from exc
+                raise RuntimeError(f'{primary}; cleanup failed: {exc}') from primary
+            raise
+
+
+def stop_vm(name):
+    tart('stop', name, timeout=30)
+    if any(v['Name'] == name and v['Running'] for v in inventory()):
+        raise RuntimeError(f'VM still running after stop: {name}')
+
+
+@contextlib.contextmanager
+def boot(name, *, online=False, graphical=False, disk=None, log=None, state=None):
+    state = {} if state is None else state
+    with stage(f'{name}: start VM'):
+        tart('set', name, '--cpu', '2', '--memory', '4096')
+        args = [tart_binary(), 'run', name, '--no-audio', '--no-clipboard', '--no-usb-accessories']
+        if not graphical:
+            args.append('--no-graphics')
+        if disk is not None:
+            args += ['--disk', str(disk) + ':ro']
+        if not online:
+            args.append('--net-host')
+        proc = subprocess.Popen(args, stdout=log or subprocess.DEVNULL,
+                                stderr=log or subprocess.DEVNULL, start_new_session=True)
+    def stop():
+        try:
+            stop_vm(name)
+            proc.wait(timeout=15)
+            state['stopped'] = True
+        finally:
+            if proc.poll() is None:
+                terminate_process(proc)
+    with cleanup(f'{name}: stop VM', stop):
+        if proc.poll() is not None:
+            raise RuntimeError(f'Tart exited while starting {name}; inspect its log.')
+        yield
+
+
+def prepare(kind):
+    STATE.mkdir(parents=True, exist_ok=True)
+    STATE.chmod(0o700)
+    name = BASE_PREFIX + kind
+    image = IMAGES['macos' if kind == 'macos' else 'debian']['image']
+    metadata_path = STATE / (kind + '.json')
+    if exists(name) and metadata_path.exists():
+        print(f'{kind}: baseline already prepared; delete it explicitly to rebuild.', flush=True)
+        return
+    if not exists(name):
+        with stage(f'{kind}: retrieve baseline image'):
+            tart('clone', image, name, timeout=3600)
+    print(f'Preparing {name}; guest networking enabled for prerequisites.', flush=True)
+    with contextlib.ExitStack() as stack:
+        disk = stack.enter_context(agent_setup_disk()) if kind == 'macos' else None
+        stack.enter_context(boot(name, online=True, graphical=(kind == 'macos'), disk=disk))
+        if kind == 'macos':
+            print('For a fresh vanilla VM, open its Terminal and run:\n\n'
+                  '  /bin/bash /Volumes/DotfilesSetup/setup.sh\n\n'
+                  'An already-installed guest agent needs no action.', flush=True)
+        try:
+            with stage(f'{kind}: wait for guest agent'):
+                wait_agent(name, seconds=90)
+        except RuntimeError:
+            if kind != 'macos':
+                raise
+            if not sys.stdin.isatty():
+                raise RuntimeError('Rerun prepare-vms macos in an interactive terminal to complete guest setup.')
+            print('Waiting up to 15 minutes for the guest agent...', flush=True)
+            with stage(f'{kind}: wait for manual agent installation'):
+                wait_agent(name, seconds=900)
+        if kind == 'macos':
+            authorize_admin(name)
+
+        def guest(command, **kwargs):
+            if kind == 'macos':
+                return ssh_agent(name, '/bin/bash -ec ' + shlex.quote(command), user='admin', **kwargs)
+            return tart('exec', name, '/bin/bash', '-e', '-c', command, **kwargs)
+
+        if kind == 'macos':
+            check = guest('/usr/bin/xcode-select -p >/dev/null 2>&1', check=False)
+            if check.returncode:
+                # List/install only Apple's CLT product, never all OS updates.
+                marker = '/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress'
+                guest('sudo -n touch ' + marker)
+                try:
+                    listing = guest('/usr/sbin/softwareupdate --list', timeout=300,
+                                    stdout=subprocess.PIPE, text=True).stdout
+                    labels = re.findall(r'^\s*\* Label: (Command Line Tools for Xcode[^\r\n]+)$', listing, re.M)
+                    if not labels:
+                        raise RuntimeError('Apple did not offer Command Line Tools; install CLT inside the guest and retry.')
+                    label = max(labels, key=lambda value: tuple(int(n) for n in re.findall(r'\d+', value)))
+                    print('Installing in guest: ' + label, flush=True)
+                    with stage(f'{kind}: install Command Line Tools'):
+                        guest('sudo -n /usr/sbin/softwareupdate --install ' + shlex.quote(label), timeout=1800)
+                finally:
+                    guest('sudo -n rm -f ' + marker)
+            guest('/usr/bin/git --version && ! test -e /opt/homebrew/bin/brew && test "$(uname -m)" = arm64 && sw_vers -productVersion | /usr/bin/grep "^26\\."')
+            create = '''if ! id dotfiles >/dev/null 2>&1; then
+test_uid=$(dscl . -list /Users UniqueID | awk 'BEGIN {n=500} $2>n && $2<60000 {n=$2} END {print n+1}')
+sudo -n dscl . -create /Users/dotfiles
+sudo -n dscl . -create /Users/dotfiles UniqueID "$test_uid"
+fi
+sudo -n dscl . -create /Users/dotfiles PrimaryGroupID 20
+sudo -n dscl . -create /Users/dotfiles UserShell /bin/bash
+sudo -n dscl . -create /Users/dotfiles RealName 'Dotfiles Tests'
+sudo -n dscl . -create /Users/dotfiles NFSHomeDirectory /Users/dotfiles
+sudo -n dscl . -create /Users/dotfiles Password '*'
+sudo -n createhomedir -c -u dotfiles >/dev/null
+sudo -n dseditgroup -o edit -a dotfiles -t user com.apple.access_ssh
+'''
+        else:
+            guest('. /etc/os-release; test "$ID:$VERSION_CODENAME:$(uname -m)" = debian:trixie:aarch64')
+            packages = 'git curl ca-certificates openssh-server'
+            with stage(f'{kind}: install guest prerequisites'):
+                guest('sudo -n apt-get update && sudo -n env DEBIAN_FRONTEND=noninteractive apt-get install -t trixie -y --no-upgrade --no-install-recommends ' + packages, timeout=900)
+            create = '''if ! id dotfiles >/dev/null 2>&1; then sudo -n useradd -m -s /bin/bash dotfiles; fi
+if [ ! -d /home/dotfiles ]; then sudo -n cp -R /etc/skel /home/dotfiles; fi
+sudo -n chown dotfiles:dotfiles /home/dotfiles
+'''
+        with stage(f'{kind}: create test account'):
+            guest(create)
+        if kind == 'macos':
+            authorize_test_user(name)
+        guest('printf "%s\\n" ' + shlex.quote(kind + ' ' + image) + ' | sudo -n tee /etc/dotfiles-test-image >/dev/null')
+        facts = guest('uname -a; /bin/bash --version | head -1; git --version; curl --version | head -1; if command -v sw_vers >/dev/null; then sw_vers; else cat /etc/os-release; fi; if command -v shellcheck >/dev/null; then shellcheck --version; fi', stdout=subprocess.PIPE, text=True).stdout
+        guest('sudo -n -u dotfiles test -w ' + ('/Users/dotfiles' if kind == 'macos' else '/home/dotfiles'))
+        guest('sudo -n chmod 644 /etc/dotfiles-test-image; sync')
+        metadata = {'image': image, 'kind': kind, 'facts': facts,
+                    'tart': output([tart_binary(), '--version'])}
+        metadata_path.write_text(json.dumps(metadata, indent=2) + '\n')
+        print(facts, flush=True)
+
+
+def git_environment():
+    # The fixture must not execute user Git hooks, filters, credential helpers, or signing.
+    return {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'HOME': str(STATE),
+            'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': '/dev/null',
+            'GIT_AUTHOR_DATE': '2000-01-01T00:00:00Z', 'GIT_COMMITTER_DATE': '2000-01-01T00:00:00Z',
+            'GIT_AUTHOR_NAME': 'Dotfiles Tests', 'GIT_AUTHOR_EMAIL': 'tests@example.invalid',
+            'GIT_COMMITTER_NAME': 'Dotfiles Tests', 'GIT_COMMITTER_EMAIL': 'tests@example.invalid'}
+
+
+def fixture(directory):
+    work = directory / 'work'
+    work.mkdir()
+    env = git_environment()
+    tracked = run([GIT, '-C', ROOT, 'ls-files', '-z'], env=env, stdout=subprocess.PIPE).stdout.split(b'\0')
+    added = run([GIT, '-C', ROOT, 'ls-files', '--others', '--exclude-standard', '-z', '--', 'tests', 'os', 'shell'], env=env, stdout=subprocess.PIPE).stdout.split(b'\0')
+    for raw in sorted(set(tracked + added)):
+        if not raw:
+            continue
+        rel = Path(os.fsdecode(raw))
+        if '__pycache__' in rel.parts or rel.suffix == '.pyc':
+            continue
+        src, dst = ROOT / rel, work / rel
+        if not src.exists() and not src.is_symlink():
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if src.is_symlink():
+            dst.symlink_to(os.readlink(src))
+        else:
+            shutil.copy2(src, dst)
+    # Refuse host snapshots containing symlinks: the fixture HTTP server must never follow one out of its root.
+    if any(p.is_symlink() for p in work.rglob('*')):
+        raise RuntimeError('Fixture contains a symlink; inspect it before allowing fixture publication.')
+    run([GIT, 'init', '-q', '-b', 'master', work], env=env)
+    run([GIT, '-C', work, 'add', '.'], env=env)
+    run([GIT, '-C', work, '-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'Candidate fixture'], env=env)
+    revision = output([GIT, '-C', work, 'rev-parse', 'HEAD'], env=env)
+    public = directory / 'public'
+    public.mkdir()
+    run([GIT, 'clone', '-q', '--bare', work, public / 'repo.git'], env=env)
+    run([GIT, '--git-dir', public / 'repo.git', 'update-server-info'], env=env)
+    shutil.copy2(work / 'dotfiles', public / 'dotfiles')
+    run(['/usr/bin/tar', '--no-xattrs', '--no-mac-metadata', '-czf', public / 'candidate.tar.gz', '--exclude=.git', '-C', work, '.'])
+    shutil.copy2(work / 'tests/guest-integration.sh', public / 'guest-integration.sh')
+    return public, revision
+
+
+def execute_suite(kind, mode, public, revision):
+    baseline = BASE_PREFIX + kind
+    with stage(f'{kind}: validate baseline'):
+        if not exists(baseline) or not (STATE / (kind + '.json')).exists():
+            raise RuntimeError(f'Missing validated {kind} baseline. Run ./tests/run prepare-vms {kind}.')
+        metadata = json.loads((STATE / (kind + '.json')).read_text())
+        expected_image = IMAGES[kind]['image']
+        if metadata['image'] != expected_image:
+            raise RuntimeError('Baseline image differs from images.json; explicitly rebuild it.')
+    name = 'dotfiles-test-' + kind + '-' + uuid.uuid4().hex[:8]
+    result_dir = ROOT / '.test-results' / name
+    result_dir.mkdir(parents=True)
+    REPORTS[kind + '/' + mode] = {'logs': str(result_dir)}
+    message(f'{kind}: logs: {result_dir}')
+    (result_dir / 'source.json').write_text(json.dumps({
+        'fixture_revision': revision, 'baseline': metadata, 'mode': mode,
+        'bats': json.loads((public.parent / 'work/tests/vendor/bats-core/UPSTREAM.json').read_text())
+    }, indent=2) + '\n')
+    state = {'stopped': False}
+    success = False
+    clone_attempted = False
+    try:
+        with stage(f'{kind}: clone VM'):
+            clone_attempted = True
+            tart('clone', baseline, name)
+        with (result_dir / 'tart.log').open('wb') as vm_log, boot(name, log=vm_log, state=state):
+            with stage(f'{kind}: wait for guest agent'):
+                wait_agent(name)
+            if kind == 'macos':
+                with stage(f'{kind}: authorize guest access'):
+                    authorize_admin(name)
+                    authorize_test_user(name)
+            with stage(f'{kind}: verify guest identity'):
+                marker_check = 'test "$(cat /etc/dotfiles-test-image)" = ' + shlex.quote(kind + ' ' + expected_image)
+                os_check = ('test "$(uname -m)" = arm64; sw_vers -productVersion | grep "^26\\."'
+                            if kind == 'macos' else
+                            '. /etc/os-release; test "$ID:$VERSION_CODENAME:$(uname -m)" = debian:trixie:aarch64')
+                tart('exec', name, '/bin/bash', '-ec', marker_check + '; ' + os_check)
+            remote = '/tmp/dotfiles-fixture-' + uuid.uuid4().hex[:8]
+            with stage(f'{kind}: transfer candidate and Bats'):
+                tart('exec', name, 'sudo', '-u', USER, 'mkdir', remote)
+                archive = public.parent / 'public.tar'
+                if not archive.exists():
+                    run(['/usr/bin/tar', '--no-xattrs', '--no-mac-metadata', '-cf', archive, '-C', public, '.'])
+                with archive.open('rb') as stream:
+                    tart('exec', '-i', name, 'sudo', '-u', USER, 'tar', '-xf', '-', '-C', remote, stdin=stream)
+            with (result_dir / 'server.log').open('wb') as server_log:
+                server = subprocess.Popen([tart_binary(), 'exec', name, 'sudo', '-u', USER,
+                    'python3', '-m', 'http.server', '18765', '--bind', '127.0.0.1', '--directory', remote],
+                    stdout=server_log, stderr=subprocess.STDOUT, start_new_session=True)
+                with cleanup(f'{kind}: stop fixture transport', lambda: terminate_process(server)):
+                    with stage(f'{kind}: wait for fixture server'):
+                        deadline = time.monotonic() + 15
+                        while tart('exec', name, 'curl', '-qfsS', '--max-time', '2',
+                                   'http://127.0.0.1:18765/dotfiles', check=False, timeout=4).returncode:
+                            if time.monotonic() > deadline or server.poll() is not None:
+                                raise RuntimeError('Guest fixture server did not become ready.')
+                            time.sleep(0.5)
+                    completion = remote + '/bats-completed'
+                    guest_args = ['/bin/bash', remote + '/guest-integration.sh', mode,
+                                  'http://127.0.0.1:18765', revision, FORMAT, str(int(COLOR)), kind, completion,
+                                  str(int(INTERACTIVE)), str(COLUMNS)]
+                    with stage(f'{kind}: run {mode} tests'):
+                        # Inner shell checks allocate their own guest PTYs. Keep the existing
+                        # outer guest login/session transport, without requiring a host TTY.
+                        with (result_dir / 'guest.log').open('wb') as log:
+                            if kind == 'macos':
+                                result = ssh_agent(name, shlex.join(guest_args), tty=True,
+                                                   timeout=600, check=False, stream_log=log)
+                            else:
+                                command = shlex.join(['sudo', '-H', '-u', USER, *guest_args])
+                                result = tart('exec', name, '/usr/bin/script', '-q', '-e', '-c',
+                                              command, '/dev/null', timeout=600, check=False, stream_log=log)
+                        completed = tart('exec', name, 'cat', completion, check=False, text=True)
+                        if completed.returncode or completed.stdout.strip() != str(result.returncode):
+                            raise RuntimeError(f'{kind}: guest setup or transport failed (exit {result.returncode})')
+                        if result.returncode:
+                            raise TestFailure(f'{kind}/{mode}: Bats reported failures; logs: {result_dir}')
+        success = True
+    finally:
+        # A failure before boot entered its cleanup (e.g. tart set/Popen) can
+        # still leave a clone. Retry an unconfirmed stop before reporting it.
+        if clone_attempted and not state['stopped']:
+            def confirm_stop():
+                if exists(name):
+                    stop_vm(name)
+                    state['stopped'] = True
+            try:
+                with cleanup(f'{kind}: confirm failed VM stopped', confirm_stop):
+                    pass
+            except BaseException:
+                REPORTS[kind + '/' + mode]['retained'] = name + ' (stop unconfirmed)'
+                message(f'Retained guest (stop unconfirmed): {name}; logs: {result_dir}', 33)
+                raise
+        if success and state['stopped']:
+            REPORTS[kind + '/' + mode]['retained'] = name + ' (stopped)'
+            with stage(f'{kind}: delete successful VM'):
+                tart('delete', name)
+            REPORTS[kind + '/' + mode].pop('retained')
+        elif clone_attempted:
+            status = 'stopped' if state['stopped'] else 'stop unconfirmed'
+            REPORTS[kind + '/' + mode]['retained'] = f'{name} ({status})'
+            message(f'Retained guest ({status}): {name}; logs: {result_dir}', 33)
+
+
+def interrupted(_signum, _frame):
+    raise KeyboardInterrupt
+
+
+def run_suites(jobs, *, started=None):
+    """Continue independent work; interruptions always escape to the outer cleanup."""
+    outcomes = []
+    started = time.monotonic() if started is None else started
+    try:
+        for index, (label, action) in enumerate(jobs):
+            try:
+                action()
+            except KeyboardInterrupt:
+                outcomes.append((label, 'INTERRUPTED'))
+                outcomes.extend((remaining, 'NOT RUN') for remaining, _ in jobs[index + 1:])
+                raise
+            except TestFailure as exc:
+                outcomes.append((label, 'FAIL'))
+                message(str(exc), 31)
+            except (RuntimeError, subprocess.SubprocessError, OSError, ValueError) as exc:
+                outcomes.append((label, 'ERROR'))
+                message(f'{label}: infrastructure error: {exc}', 31)
+            else:
+                outcomes.append((label, 'PASS'))
+    finally:
+        message(f'Summary ({time.monotonic() - started:.1f}s)')
+        for label, outcome in outcomes:
+            message(f'{label}: {outcome}', 32 if outcome == 'PASS' else 31)
+            for key, value in REPORTS.get(label, {}).items():
+                message(f'  {key}: {value}')
+    return 1 if any(status != 'PASS' for _, status in outcomes) else 0
+
+
+def main():
+    started = time.monotonic()
+    signal.signal(signal.SIGTERM, interrupted)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('command', choices=['host-syntax', 'lint', 'unit', 'quick', 'vm', 'prepare-vms'])
+    parser.add_argument('platform', nargs='?', choices=['macos', 'debian', 'all'], default='all')
+    parser.add_argument('--format', choices=['auto', 'pretty', 'tap'], default='auto')
+    args = parser.parse_args()
+    if args.command not in ['vm', 'prepare-vms'] and args.platform != 'all':
+        parser.error('Only vm and prepare-vms accept a platform argument.')
+    global ACCESS, FORMAT, COLOR, INTERACTIVE, COLUMNS
+    FORMAT, COLOR = choose_format(args.format)
+    INTERACTIVE = FORMAT == 'pretty' and sys.stdout.isatty() and os.environ.get('TERM', 'dumb') != 'dumb'
+    COLUMNS = shutil.get_terminal_size().columns
+    if args.command in ['host-syntax', 'lint']:
+        return run_suites([(args.command, lambda: host_checks(args.command))], started=started)
+    with tempfile.TemporaryDirectory(prefix='dotfiles-vm-access-') as access:
+        ACCESS = Path(access)
+        if args.command == 'prepare-vms':
+            kinds = ['debian', 'macos'] if args.platform == 'all' else [args.platform]
+            return run_suites([(kind, lambda kind=kind: prepare(kind)) for kind in kinds], started=started)
+        kinds = (['macos', 'debian'] if args.platform == 'all' else [args.platform]) if args.command == 'vm' else ['macos']
+        mode = 'integration' if args.command == 'vm' else 'unit'
+        with tempfile.TemporaryDirectory(prefix='dotfiles-fixture-') as tmp:
+            with stage('Freeze candidate snapshot'):
+                public, revision = fixture(Path(tmp))
+                message('Candidate commit: ' + revision)
+            jobs = []
+            if args.command == 'quick':
+                jobs.append(('lint', lambda: host_checks('lint', public.parent / 'work')))
+            jobs += [(kind + '/' + mode, lambda kind=kind: execute_suite(kind, mode, public, revision)) for kind in kinds]
+            return run_suites(jobs, started=started)
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except (RuntimeError, subprocess.SubprocessError, KeyboardInterrupt, OSError, ValueError) as exc:
+        message('Interrupted' if isinstance(exc, KeyboardInterrupt) else f'ERROR: {exc}', 31)
+        sys.exit(130 if isinstance(exc, KeyboardInterrupt) else 1)

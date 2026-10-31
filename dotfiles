@@ -1,260 +1,108 @@
 #!/bin/bash
+# Bootstrap intentionally stands alone: it can be downloaded before the repo exists.
+set -eo pipefail
+fail() { printf 'dotfiles: %s\n' "$*" >&2; exit 1; }
+usage() {
+    cat <<'USAGE'
+Usage: dotfiles install [--backup]
+       dotfiles bootstrap [--repo URL] [--ref REVISION] [--directory PATH] [--backup]
 
-declare -r GITHUB_REPOSITORY="brendan-R/dotfiles"
-
-declare -r DOTFILES_ORIGIN="git@github.com:$GITHUB_REPOSITORY.git"
-declare -r DOTFILES_TARBALL_URL="https://github.com/$GITHUB_REPOSITORY/tarball/master"
-declare -r DOTFILES_UTILS_URL="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/master/os/utils.sh"
-
-declare dotfilesDirectory="$HOME/projects/dotfiles"
-
-# ----------------------------------------------------------------------
-# | Helper Functions                                                   |
-# ----------------------------------------------------------------------
-
-check_os() {
-
-    declare -r OS_NAME="$(uname -s)"
-
-    # Check if the OS is Ubuntu
-        if [ "$OS_NAME" != "Linux" ] || [ ! -e "/etc/lsb-release" ]; then
-            printf "Sorry, this script is intended only for Ubuntu!"
-            return 1
-        else
-            return 0
-        fi
+Git must already be installed. No packages, credentials, or OS preferences are changed.
+Existing checkouts are reused without updating or discarding local changes.
+USAGE
 }
-
-download() {
-
-    local url="$1"
-    local output="$2"
-
-    if [ -x "$(command -v curl)" ]; then
-
-        curl -LsSo "$output" "$url" &> /dev/null
-        #     │││└─ write output to file
-        #     ││└─ show error messages
-        #     │└─ don't show the progress meter
-        #     └─ follow redirects
-
-    elif [ -x "$(command -v wget)" ]; then
-
-        wget -qO "$output" "$url" &> /dev/null
-        #     │└─ write output to file
-        #     └─ don't show output
-
+platform() {
+    case "$(uname -s)" in
+        Darwin) printf 'macos\n' ;;
+        Linux)
+            [ -r /etc/os-release ] || fail 'Unsupported Linux distribution (expected Debian).'
+            # shellcheck disable=SC1091
+            . /etc/os-release
+            [ "${ID:-}" = debian ] || fail 'Unsupported Linux distribution (expected Debian).'
+            printf 'debian\n' ;;
+        *) fail 'Supported systems: macOS and Debian.' ;;
+    esac
+}
+require_git() {
+    local git_path
+    git_path=$(command -v git) || fail 'Git is required. Install Command Line Tools on macOS (xcode-select --install), or git on Debian (sudo apt install git ca-certificates).'
+    if [ "$os" = macos ] && [ "$git_path" = /usr/bin/git ]; then
+        /usr/bin/xcode-select -p >/dev/null 2>&1 || fail 'Git requires Command Line Tools. Run xcode-select --install, complete installation, then rerun bootstrap.'
+    fi
+    git --version >/dev/null 2>&1 || fail 'Git is not working. Repair its installation, then rerun bootstrap.'
+}
+canonical_repo() {
+    local value=$1
+    case "$value" in
+        git@github.com:*) value="https://github.com/${value#git@github.com:}" ;;
+    esac
+    case "$value" in
+        https://github.com/*) printf '%s\n' "${value%.git}" | tr '[:upper:]' '[:lower:]' ;;
+        *) printf '%s\n' "$value" ;;
+    esac
+}
+command_name=${1:---help}
+case "$command_name" in --help|-h) usage; exit 0 ;; install|bootstrap) shift ;; *) usage >&2; exit 2 ;; esac
+repository=https://github.com/brendan-r/dotfiles.git
+revision=master
+explicit_revision=false
+destination=${HOME:?}/projects/dotfiles
+backup=false
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --backup) backup=true; shift ;;
+        --repo|--ref|--directory)
+            [ "$command_name" = bootstrap ] || fail "$1 is only valid for bootstrap."
+            if [ "$#" -lt 2 ] || [ -z "$2" ]; then fail "Missing value for $1."; fi
+            case "$1" in
+                --repo) repository=$2 ;;
+                --ref) revision=$2; explicit_revision=true ;;
+                --directory) destination=$2 ;;
+            esac
+            shift 2 ;;
+        --help|-h) usage; exit 0 ;;
+        *) fail "Unknown option: $1" ;;
+    esac
+done
+[ "${EUID}" -ne 0 ] || fail 'Run as your normal user, without sudo.'
+os=$(platform)
+if [ "$command_name" = bootstrap ]; then
+    require_git
+    case "$repository" in -*) fail 'Repository must not begin with a dash.' ;; esac
+    case "$revision" in -*) fail 'Revision must not begin with a dash.' ;; esac
+    case "$destination" in /*) ;; *) destination="$PWD/$destination" ;; esac
+    [ ! -L "$destination" ] || fail "Checkout destination is a symlink: $destination"
+    if [ -e "$destination" ]; then
+        [ -d "$destination/.git" ] || [ -f "$destination/.git" ] || fail "Destination is not a Git checkout: $destination"
+        origin=$(git -C "$destination" remote get-url origin) || fail 'Existing checkout has no origin.'
+        [ "$(canonical_repo "$origin")" = "$(canonical_repo "$repository")" ] || fail 'Existing checkout belongs to another repository.'
+        if "$explicit_revision"; then
+            requested=$(git -C "$destination" rev-parse --verify "$revision^{commit}") || fail 'Requested revision is not available in the existing checkout.'
+            [ "$requested" = "$(git -C "$destination" rev-parse HEAD)" ] || fail 'Existing checkout is at another revision. Change it explicitly before rerunning.'
+        fi
     else
-        return 1
-    fi
-
-    return $?
-
-}
-
-download_dotfiles() {
-
-    local tmpFile="$(mktemp -u XXXXX)"
-
-    cd "/tmp"
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    download "$DOTFILES_TARBALL_URL" "$tmpFile"
-    print_result $? "Download archive" "true"
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    printf "\n"
-
-    ask_for_confirmation "Do you want to store the dotfiles in '$dotfilesDirectory'?"
-    if ! answer_is_yes; then
-        dotfilesDirectory=""
-        while [ -z "$dotfilesDirectory" ]; do
-            ask "Please specify another location for the dotfiles (path): "
-            dotfilesDirectory="$(get_answer)"
-        done
-    fi
-
-    # Ensure the `dotfiles` directory is available
-
-    while [ -e "$dotfilesDirectory" ]; do
-        ask_for_confirmation "'$dotfilesDirectory' already exists, do you want to overwrite it?"
-        if answer_is_yes; then
-            rm -rf "$dotfilesDirectory"
-            break
+        parent=$(dirname "$destination")
+        mkdir -p "$parent"
+        staging=$(mktemp -d "$parent/.dotfiles-clone.XXXXXX")
+        trap 'rm -rf "$staging"' EXIT
+        # Disable credential prompts; fetching this public repo requires no account.
+        GIT_TERMINAL_PROMPT=0 git clone -- "$repository" "$staging/repo"
+        if git -C "$staging/repo" rev-parse --verify "$revision^{commit}" >/dev/null 2>&1; then
+            git -C "$staging/repo" checkout "$revision" --
+        elif git -C "$staging/repo" show-ref --verify --quiet "refs/remotes/origin/$revision"; then
+            git -C "$staging/repo" checkout -b "$revision" --track "origin/$revision"
         else
-            dotfilesDirectory=""
-            while [ -z "$dotfilesDirectory" ]; do
-                ask "Please specify another location for the dotfiles (path): "
-                dotfilesDirectory="$(get_answer)"
-            done
+            fail "Requested revision does not identify a commit: $revision"
         fi
-    done
-
-    printf "\n"
-
-    mkdir -p "$dotfilesDirectory"
-    print_result $? "Create '$dotfilesDirectory'" "true"
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    # Extract archive in the `dotfiles` directory
-
-    extract "$tmpFile" "$dotfilesDirectory"
-    print_result $? "Extract archive" "true"
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    # Remove archive
-
-    rm -rf "$tmpFile"
-    print_result $? "Remove archive"
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    cd "$dotfilesDirectory"
-
-}
-
-download_utils() {
-    local tmpFile="$(mktemp -u XXXXX)"
-    download "$DOTFILES_UTILS_URL" "/tmp/$tmpFile" \
-        && source "/tmp/$tmpFile" \
-        || exit
-}
-
-extract() {
-
-    local archive="$1"
-    local outputDir="$2"
-
-    if [ -x "$(command -v tar)" ]; then
-        tar -zxf "$archive" --strip-components 1 -C "$outputDir"
-    else
-        return 1
+        mv "$staging/repo" "$destination"
+        rm -rf "$staging"
+        trap - EXIT
     fi
-
-    return $?
-
-}
-
-# ----------------------------------------------------------------------
-# | Main                                                               |
-# ----------------------------------------------------------------------
-
-main() {
-
-    # Ensure the OS is Ubuntu
-    check_os || exit;
-
-    # Ensure that the following actions are made
-    # relative to the dotfiles directory root
-    # http://mywiki.wooledge.org/BashFAQ/028
-    cd "$(dirname "${BASH_SOURCE}")";
-
-    download_utils
-    ask_for_sudo
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    # Setup the `dotfiles` if needed
-    if [ $(cmd_exists "git") -ne 0 ] || \
-       [ "$(git config --get remote.origin.url)" != "$DOTFILES_ORIGIN" ]; then
-
-        print_info "Download and extract archive"
-        download_dotfiles
-
-    fi
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    print_info "Create directories"
-
-    ask_for_confirmation "Do you want the additional directories to be created?"
-    printf "\n"
-
-    if answer_is_yes; then
-        ./os/create_directories.sh
-    fi
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    print_info "Create symbolic links"
-    ./os/create_symbolic_links.sh
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    print_info "Install applications"
-
-    ask_for_confirmation "Do you want to install the applications/command line tools?"
-    printf "\n"
-
-    if answer_is_yes; then
-        ./os/install_applications.sh
-        printf "\n"
-        ./os/install_node_versions.sh
-        printf "\n"
-        ./os/install_npm_packages.sh
-    fi
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    print_info "Set preferences"
-
-    ask_for_confirmation "Do you want to set the custom preferences?"
-    printf "\n"
-
-    if answer_is_yes; then
-        ./os/set_preferences.sh
-    fi
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    if [ $(cmd_exists "git") -eq 0 ]; then
-
-        if [ "$(git config --get remote.origin.url)" != "$DOTFILES_ORIGIN" ]; then
-            print_info "Initialize Git repository"
-            ./os/initialize_git_repository.sh "$DOTFILES_ORIGIN"
-        fi
-
-        print_info "Update content"
-
-        ask_for_confirmation "Do you want to update the content from the 'dotfiles' directory?"
-        printf "\n"
-
-        if answer_is_yes; then
-            ./os/update_content.sh
-        fi
-
-    fi
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    if [ $(cmd_exists "vim") -eq 0 ]; then
-
-        print_info "Install Vim plugins"
-
-        ask_for_confirmation "Do you want to install the Vim plugins?"
-        printf "\n"
-
-        if answer_is_yes; then
-            ./os/install_vim_plugins.sh
-        fi
-
-    fi
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    print_info "Restart"
-
-    ask_for_confirmation "Do you want to restart?"
-    printf "\n"
-
-    if answer_is_yes; then
-        ./os/restart_computer.sh
-    fi
-
-}
-
-main
+    args=(install)
+    if "$backup"; then args+=(--backup); fi
+    exec /bin/bash "$destination/dotfiles" "${args[@]}"
+fi
+root=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+args=("$root" "$os")
+if "$backup"; then args+=(--backup); fi
+exec /bin/bash "$root/os/create_symbolic_links.sh" "${args[@]}"

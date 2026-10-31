@@ -1,0 +1,107 @@
+#!/bin/bash
+# Presentation only: Bats parses its own protocol and owns all test outcomes.
+set -e
+# shellcheck source=tests/vendor/bats-core/lib/bats-core/formatter.bash
+source "$BATS_ROOT/$BATS_LIBDIR/bats-core/formatter.bash"
+passed=0 failed=0 skipped=0 count=0
+running=''
+current_group=''
+test_label=''
+test_group=''
+columns=${DOTFILES_TEST_COLUMNS:-80}
+case "$columns" in ''|*[!0-9]*) columns=80 ;; esac
+if [ "$columns" -lt 10 ]; then columns=10; fi
+clear_running() {
+    if [ -n "$running" ]; then printf '\r\033[K'; fi
+}
+draw_running() {
+    if [ -n "$running" ]; then printf '%s' "$running"; fi
+}
+finish_running() {
+    # Leave an unfinished test visible if the stream ends or is interrupted.
+    if [ -n "$running" ]; then printf '\n'; running=''; fi
+}
+trap finish_running EXIT
+paint() {
+    if [ "${DOTFILES_TEST_COLOR:-0}" = 1 ] && [ -z "${NO_COLOR+x}" ]; then
+        printf '\033[%sm%s\033[0m' "$1" "$2"
+    else
+        printf '%s' "$2"
+    fi
+}
+select_test() {
+    local name=$1 area remainder component
+    test_group=''
+    test_label=${name//_/ }
+    case "$name" in
+        *__*__*)
+            area=${name%%__*}
+            remainder=${name#*__}
+            component=${remainder%%__*}
+            test_group="${area//_/ } / ${component//_/ }"
+            test_label=${remainder#*__}
+            test_label=${test_label//_/ }
+            ;;
+    esac
+    if [ -n "$test_group" ] && [ "$test_group" != "$current_group" ]; then
+        if [ -n "$current_group" ]; then printf '\n'; fi
+        printf '%s\n' "$test_group"
+    fi
+    current_group=$test_group
+}
+result() {
+    clear_running
+    running=''
+    select_test "$3"
+    if [ -n "$test_group" ]; then printf '  '; fi
+    paint "$1" "$2"
+    printf ' %s' "$test_label"
+    if [ -n "${BATS_FORMATTER_TEST_DURATION:-}" ]; then
+        printf ' (%s ms)' "$BATS_FORMATTER_TEST_DURATION"
+    fi
+    printf '\n'
+}
+bats_tap_stream_plan() { count=$1; }
+bats_tap_stream_suite() { :; }
+bats_tap_stream_begin() {
+    clear_running
+    running=''
+    select_test "$2"
+    if [ "${DOTFILES_TEST_INTERACTIVE:-0}" = 1 ]; then
+        running="  → $test_label"
+        # Keep the transient row from wrapping, even in a narrow terminal.
+        if [ "${#running}" -ge "$columns" ]; then
+            running="${running:0:$((columns - 4))}..."
+        fi
+        draw_running
+    fi
+}
+bats_tap_stream_ok() { passed=$((passed + 1)); result 32 '✓' "$2"; }
+bats_tap_stream_not_ok() {
+    failed=$((failed + 1))
+    result 31 '✗' "$2"
+    if [ -n "${BATS_FORMATTER_TEST_TIMEOUT:-}" ]; then
+        printf '    Timeout after %s s\n' "$BATS_FORMATTER_TEST_TIMEOUT"
+    fi
+}
+bats_tap_stream_skipped() {
+    skipped=$((skipped + 1))
+    result 33 '−' "$2 (skipped: ${3:-unspecified})"
+}
+bats_tap_stream_comment() {
+    clear_running
+    printf '    %s\n' "$1"
+    draw_running
+}
+bats_tap_stream_unknown() {
+    clear_running
+    printf '%s\n' "$1"
+    draw_running
+}
+bats_parse_internal_extended_tap
+finish_running
+printf '\n'
+color=32
+if [ "$failed" -gt 0 ] || [ "$((passed + failed + skipped))" -ne "$count" ]; then color=31; fi
+paint "$color" "$count tests: $passed passed, $failed failed, $skipped skipped, $((count - passed - failed - skipped)) not run"
+printf '\n'

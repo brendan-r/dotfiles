@@ -117,8 +117,8 @@ gz() {
 
             printf " ─────────────────────────────\n"
             printf " reduction:       %12s [%s%%]\n\n" \
-                        "$( hrfs $(($originalSize-$gzippedSize)) )" \
-                        "$( printf "%s %s" "$originalSize $gzippedSize" | \
+                        "$( hrfs $((originalSize-gzippedSize)) )" \
+                        "$( printf "%s %s" "$originalSize" "$gzippedSize" | \
                             awk '{ printf "%.1f", 100 - $2 * 100 / $1 }' | \
                             sed -e "s/0*$//;s/\.$//" )"
                             #              └─ remove tailing zeros
@@ -138,7 +138,7 @@ gz() {
 
 mkd() {
     if [ -n "$*" ]; then
-        mkdir -p "$@" && cd "$@"
+        mkdir -p "$@" && cd "$@" || return
         #      └─ make parent directories if needed
     fi
 }
@@ -331,10 +331,8 @@ gifcast() {
         declare -r outnname="$2"
     fi
 
-    ffmpeg -v warning -i $1 -vf scale=600:-1 -pix_fmt rgb8 -r 10 -f gif - |\
-        gifsicle --optimize=3 --delay=3  > $outnname
-
-    if [ $? -ne 0 ]; then
+    if ! ffmpeg -v warning -i "$1" -vf scale=600:-1 -pix_fmt rgb8 -r 10 -f gif - |\
+        gifsicle --optimize=3 --delay=3  > "$outnname"; then
         echo "Problems encountered"
         return
     else
@@ -347,6 +345,8 @@ gifcast() {
 kill_old_kernals() {
     sudo update-grub
     sudo apt-get purge
+    # dpkg emits whitespace-free package names; split those into apt arguments.
+    # shellcheck disable=SC2046
     sudo apt-get purge $(   \
         dpkg -l linux-{image,headers}-"[0-9]*" |      \
         awk '/ii/{print $2}' | grep -ve "$(uname -r | \
@@ -358,11 +358,11 @@ kill_old_kernals() {
 # relevant services to get it all going again
 restart_yubikey() {
     echo "Remove Yubikey. Press any key to continue..."
-    read -n 1
+    read -r -n 1
     pkill scdaemon
     pkill gpg-agent
     echo "Re-insert Yubikey. Press any key to continue..."
-    read -n 1
+    read -r -n 1
     echo | gpg2 --card-status
 }
 
@@ -379,16 +379,27 @@ site_stats() {
     # This assumes that you have a dir containing your s3 and cloudfront logs
     # for s3 files         : ~/home/br/projects/logs/logs
     # for cloudfront files : ~/home/br/projects/logs/cf-logs
-    cd /home/br/projects/logs
+    cd "$HOME/projects/logs" || return
 
     # Sync the remote files with the local ones
     aws s3 sync s3://brdc-logfiles ./
 
     # Just use the cloudfront logs
-    cd cf-logs
+    cd cf-logs || return
 
     # Depends on goaccess, obvs
-    zcat *.gz | goaccess -a > report.html
+    zcat ./*.gz | goaccess -a > report.html
 
     o report.html
+}
+
+# Preserve Ctrl-S for Vim, using the portable stty spelling on both platforms.
+vim() {
+    local terminal_settings status
+    if [ ! -t 0 ]; then command vim "$@"; return; fi
+    terminal_settings=$(stty -g) || return
+    stty stop '' -ixoff || return
+    if command vim "$@"; then status=0; else status=$?; fi
+    stty "$terminal_settings"
+    return "$status"
 }
