@@ -85,9 +85,31 @@ The same download/execute procedure documented in [BOOTSTRAP.md](../BOOTSTRAP.md
 
 Cases cover platform links, reruns, spaces in paths, conflict preflight, backup contents, symlinked parents, missing sources/Git, unsupported platforms, failed clones and refs, dirty checkouts, and stock-Bash startup. Interactive shells run under their own guest PTYs so Apple's Bash 3.2 can initialize job control before its output is captured. Optional applications and generated locales are not required. Full suites use the account's real guest home with OS skeleton files, then verify checkout ownership, a usable branch, reruns, and shell startup. Each behavioral case gets a fresh HOME and mutable source copy. Independent integration cases restore installer-owned paths in the real guest account HOME from a saved snapshot; SSH credentials and macOS Library contents are not reset.
 
+## Try the dotfiles interactively
+
+Run this in a real terminal on the host after preparing the corresponding baseline:
+
+```sh
+./tests/run interactive macos
+./tests/run interactive debian
+./tests/run interactive macos --gui       # Also open the VM window
+./tests/run interactive debian --online  # Allow internet access for downloads
+./tests/run interactive macos --keep      # Preserve the stopped clone after exit
+```
+
+The command freezes your current working-tree snapshot, clones a fresh VM, and opens a real guest terminal as the non-administrator `dotfiles` account. It clones the candidate into `~/projects/dotfiles` inside the guest and starts there **without running the installer**. Try `./dotfiles install --backup`, answer prompts, inspect the results, and use `exec /bin/bash -il` to load the installed shell configuration. Input, terminal menus, Ctrl-C, and terminal resizing pass through the terminal transport. The current maintained installer has command-line options rather than a menu; this mode also supports scripts that prompt interactively.
+
+The welcome message includes commands for testing the download/bootstrap path against the same local snapshot. `DOTFILES_FIXTURE_URL` and `DOTFILES_REVISION` are available in the guest shell. The fixture server runs inside the guest on loopback while the session is open. No commit or push is required. Host edits made after launch do not change the running candidate, and guest edits never sync back to the host.
+
+Use `exit 0` to finish successfully. The runner stops and deletes the clone after a successful session unless `--keep` was specified. A nonzero shell exit, disconnect, setup failure, or interruption retains the stopped clone and reports its name. On macOS, OpenSSH's Enter then `~.` escape disconnects a stuck session. Ctrl-C during a guest command interrupts that command; Ctrl-C during setup interrupts the runner and cleans up. Interactive sessions have no test-suite time limit. Setup and cleanup still have timeouts.
+
+`--keep` preserves the disk for manual inspection; it does not add a resume command. The summary prints the VM name for Tart inspection or `tart delete NAME` when finished. Temporary access keys and the fixture server are cleaned up even when retaining the disk; starting another `interactive` command always creates a new clone. Infrastructure logs and `source.json` are saved in `.test-results/`; terminal contents and typed input are not recorded in `guest.log`. An interactive `PASS` means the session and cleanup finished successfully, not that automated assertions ran.
+
+Networking remains host-only by default, with the same host-network caveat described above. `--online` explicitly enables the VM's ordinary internet routing. `--gui` adds the VM console window; the interactive command still runs in your host terminal, and the console may be logged into a different account. Neither option shares host directories, clipboard, audio, USB accessories, or personal credentials. The account remains non-administrative, so this mode does not automatically grant permissions for system package installers. The three flags apply only to `interactive`, which requires exactly one platform and terminal stdin/stdout; piping or redirecting the command is rejected before creating a VM.
+
 ## One framework and live output
 
-Bats-core runs every test: local static checks, guest behavior, full installation, and guest-only Python harness probes with fake transports. The Python entrypoint manages VMs, subprocesses, and progress; it is not another test framework. All nine terminal/startup combinations appear individually for isolated guest homes. The full account installation retains one interactive-login startup check with `TERM=xterm-256color`. Each full VM suite has 38 named cases: 30 dotfiles cases and eight runner cases. The two local static checks are separate. Tests use Bash-compatible function syntax with `# @test` so syntax checks can parse them without executing them.
+Bats-core runs every test: local static checks, guest behavior, full installation, and guest-only Python harness probes with fake transports. The Python entrypoint manages VMs, subprocesses, and progress; it is not another test framework. All nine terminal/startup combinations appear individually for isolated guest homes. The full account installation retains one interactive-login startup check with `TERM=xterm-256color`. Each full VM suite has 39 named cases: 30 dotfiles cases and nine runner cases. The two local static checks are separate. Tests use Bash-compatible function syntax with `# @test` so syntax checks can parse them without executing them.
 
 Test names follow `area__component__expected_behavior`: double underscores separate the three levels, and single underscores separate words within a level. Use lowercase names that describe the observable outcome, for example `dotfiles__install__conflicts_preserve_originals_before_linking` or `runner__processes__timeout_stops_child`. Put case variations in the final level, such as `dotfiles__shell__login_with_term_unset_runs_repo_command`. Keep the execution platform out of the name: the runner adds `[host]`, `[macos]`, or `[debian]` separately.
 
@@ -133,13 +155,13 @@ Results appear under `.test-results/dotfiles-test-<platform>-<id>/`:
 
 Local checks write `host.log` under a corresponding `dotfiles-test-host-*` directory. Partial logs survive failures, timeouts, and interruptions.
 
-The harness bounds startup, provisioning, and execution, including silent subprocesses. It stops guests on exit and deletes successful test clones only after verifying they stopped. Failed guests are retained for inspection. If stopping fails, output explicitly says stopping is unconfirmed; it never claims the VM stopped successfully. Original failures and cleanup failures are both reported. Delete retained guests individually with `tart delete NAME` when finished. Logs remain until you choose to remove them.
+The harness bounds startup, provisioning, and execution, including silent subprocesses, except the deliberately unbounded interactive terminal session. It stops guests on exit and deletes successful test clones only after verifying they stopped. Failed guests are retained for inspection. If stopping fails, output explicitly says stopping is unconfirmed; it never claims the VM stopped successfully. Original failures and cleanup failures are both reported. Delete retained guests individually with `tart delete NAME` when finished. Logs remain until you choose to remove them.
 
 Completion requires local `lint`, `vm macos`, and `vm debian` to pass on the same source snapshot. `vm all` freezes one snapshot for both full suites. Each includes the behavioral and harness cases also run by `unit`, so running `quick` as well is optional. Testing the published GitHub one-liner is a separate post-publication check. No GitHub Actions workflow is included in this milestone.
 
 ## Test coverage and gaps
 
-The current milestone is downloading a checkout, installing configuration links, and starting Bash successfully on prepared macOS and Debian guests. Each full VM suite contains 30 dotfiles cases and eight runner cases; the two host static checks are separate. A passing suite establishes this limited bootstrap behavior, not that the repository can provision a complete working machine or that every linked configuration works in its application.
+The current milestone is downloading a checkout, installing configuration links, and starting Bash successfully on prepared macOS and Debian guests. Each full VM suite contains 30 dotfiles cases and nine runner cases; the two host static checks are separate. A passing suite establishes this limited bootstrap behavior, not that the repository can provision a complete working machine or that every linked configuration works in its application.
 
 ### Types of tests
 
@@ -161,7 +183,7 @@ The `unit` command runs focused behavioral tests in a real VM, including real fi
 
 - **`runner / output` — 1 case; formatter and log-processing regression tests.** Feeds synthetic pass/fail/skip events and diagnostics through the actual formatter and log writer. Checks result totals, grouped headings and platform changes, readable case labels, color/no-color modes, live-row handling, narrow-terminal truncation, and plain saved logs, including fragmented text and interrupted output. This checks whether test results are faithfully presented; it does not test dotfiles behavior. Case: the output group in [cases/harness.bats](cases/harness.bats).
 
-- **`runner / vms` — 2 cases; VM lifecycle logic with mocked commands.** Injects fake Tart commands, inventory responses, and subprocesses into the real orchestration functions. Checks that cleanup failures remain visible alongside the original failure, that an unconfirmed stop is reported, and that successful guests are deleted while failed guests are retained across success, assertion, setup, transport, and stop-failure scenarios. The lifecycle simulation exercises the Debian execution path. Ordinary full-suite runs also boot and clean up real VMs, but these injected failure cases do not prove real Tart/SSH/agent behavior under every failure condition. Cases: the vms group in [cases/harness.bats](cases/harness.bats).
+- **`runner / vms` — 3 cases; VM lifecycle logic with mocked commands.** Injects fake Tart commands, inventory responses, and subprocesses into the real orchestration functions. Checks that cleanup failures remain visible alongside the original failure, that an unconfirmed stop is reported, and that successful guests are deleted while failed guests are retained across success, assertion, setup, transport, and stop-failure scenarios. The lifecycle simulation exercises the Debian execution path. The interactive lifecycle case also checks terminal transport selection, explicit internet/window options, retention with `--keep`, and interruption cleanup. Ordinary full-suite runs also boot and clean up real VMs, but these injected failure cases do not prove real Tart/SSH/agent behavior under every failure condition. Cases: the vms group in [cases/harness.bats](cases/harness.bats).
 
 ### Repository functionality not currently tested
 

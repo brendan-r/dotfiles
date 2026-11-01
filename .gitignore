@@ -9,3 +9,4 @@ vim/vim/
 # Local VM test logs and Python caches
 .test-results/
 __pycache__/
+/TODO.md

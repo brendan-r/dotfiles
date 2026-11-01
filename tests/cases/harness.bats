@@ -34,3 +34,7 @@ function runner__vms__cleanup_errors_and_unconfirmed_stops_are_reported { # @tes
 function runner__vms__success_deletes_guest_and_failures_retain_it { # @test
     python3 "$DOTFILES_CANDIDATE/tests/helpers/harness-probe.py" vm_lifecycle
 }
+
+function runner__vms__interactive_exit_keep_and_interrupt_clean_up_guest { # @test
+    python3 "$DOTFILES_CANDIDATE/tests/helpers/harness-probe.py" interactive_lifecycle
+}

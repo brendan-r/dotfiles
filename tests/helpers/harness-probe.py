@@ -225,7 +225,7 @@ def formatting():
         assert lines[-1] == '4 tests: 2 passed, 1 failed, 1 skipped, 0 not run', lines
 
 
-def vm_lifecycle():
+def vm_lifecycle(mode='unit', keep=False):
     # Exercise the real execute_suite/boot/cleanup branches with command fakes.
     # No extra VMs or candidate commands are launched by this regression case.
     original_root, original_state = h.ROOT, h.STATE
@@ -244,14 +244,17 @@ def vm_lifecycle():
         provenance.write_text('{"version":"1.14.0"}')
         h.tart_binary = lambda: '/fake/tart'
         h.exists = lambda name: True
-        for scenario in ('pass', 'assertion', 'setup', 'transport', 'stop'):
+        for scenario in ('pass', 'assertion', 'setup', 'transport', 'stop', 'interrupt'):
             calls = []
             running = [True]
             processes = []
+            terminal_calls = []
+            process_args = []
             class Process:
                 def __init__(self, *args, **kwargs):
                     self.done = False
                     processes.append(self)
+                    process_args.append(args[0])
                 def poll(self):
                     return 0 if self.done else None
                 def wait(self, timeout=None):
@@ -268,6 +271,8 @@ def vm_lifecycle():
                         raise OSError('injected stop failure')
                     running[0] = False
                 if '/usr/bin/script' in args:
+                    if scenario == 'interrupt':
+                        raise KeyboardInterrupt
                     code = 1 if scenario == 'assertion' else 255 if scenario == 'transport' else 0
                     kwargs['stream_log'].write(b'partial guest results\n')
                 if args[0] == 'exec' and args[2] == 'cat':
@@ -277,6 +282,13 @@ def vm_lifecycle():
             def ready(name):
                 if scenario == 'setup':
                     raise RuntimeError('injected agent failure')
+            def fake_terminal(args):
+                terminal_calls.append(args)
+                if scenario == 'interrupt':
+                    raise KeyboardInterrupt
+                if scenario in ('assertion', 'transport'):
+                    raise RuntimeError('injected interactive exit')
+            h.terminal = fake_terminal
             h.subprocess.Popen = Process
             h.terminate_process = terminate
             h.tart = fake_tart
@@ -286,25 +298,44 @@ def vm_lifecycle():
             text = io.StringIO()
             with contextlib.redirect_stdout(text):
                 try:
-                    h.execute_suite('debian', 'unit', public, 'fixed-revision')
-                except (RuntimeError, OSError) as exc:
+                    h.execute_suite('debian', mode, public, 'fixed-revision',
+                                    online=(mode == 'interactive'), graphical=(mode == 'interactive'), keep=keep)
+                except (RuntimeError, OSError, KeyboardInterrupt) as exc:
                     failure = exc
             assert any(args[0] == 'stop' for args in calls), calls
             assert all(proc.done for proc in processes), scenario
             deleted = any(args[0] == 'delete' for args in calls)
-            assert deleted == (scenario == 'pass'), (scenario, calls)
+            assert deleted == (scenario == 'pass' and not keep), (scenario, calls)
+            if mode == 'interactive':
+                boot_args = next(args for args in process_args if args[1] == 'run')
+                assert '--net-host' not in boot_args and '--no-graphics' not in boot_args
+                assert '--no-clipboard' in boot_args and '--no-usb-accessories' in boot_args
+                assert not any('/usr/bin/script' in args for args in calls)
+                if scenario != 'setup':
+                    assert len(terminal_calls) == 1
+                    args = terminal_calls[0]
+                    assert args[1:5] == ['exec', '-i', '-t', next(c[2] for c in calls if c[0] == 'clone')]
+                    assert args[5:10] == ['sudo', '-H', '-u', 'dotfiles', 'env']
+                    assert any(str(arg).endswith('/guest-interactive.sh') for arg in args)
+                metadata = next((base / '.test-results').glob('*/source.json'))
+                assert json.loads(metadata.read_text())['mode'] == 'interactive'
             if scenario == 'pass':
                 assert failure is None, failure
-            elif scenario == 'assertion':
+            elif scenario == 'assertion' and mode != 'interactive':
                 assert isinstance(failure, h.TestFailure), failure
             else:
                 assert failure is not None and not isinstance(failure, h.TestFailure), failure
             if scenario == 'stop':
                 assert 'stop unconfirmed' in text.getvalue()
-            elif scenario != 'pass':
+            elif scenario != 'pass' or keep:
                 assert 'Retained guest (stopped)' in text.getvalue()
     h.subprocess.Popen = original_popen
     h.ROOT, h.STATE = original_root, original_state
+
+
+def interactive_lifecycle():
+    vm_lifecycle('interactive')
+    vm_lifecycle('interactive', keep=True)
 
 
 # Bats chooses the probe and owns naming, status, diagnostics, and reporting.

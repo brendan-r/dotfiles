@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import termios
 import time
 import uuid
 
@@ -265,12 +266,37 @@ def authorize_test_user(name):
     ssh_agent(name, '/bin/bash -ec ' + shlex.quote(command), user='admin')
 
 
-def ssh_agent(name, command, *, user=USER, tty=False, **kwargs):
+def terminal(args):
+    """Let the transport own the real terminal, including raw mode and resize.
+
+    Do not pipe output, impose a suite timeout, or detach from the controlling
+    terminal. SSH/Tart restore terminal settings when terminated normally.
+    """
+    saved_terminal = termios.tcgetattr(sys.stdin.fileno())
+    try:
+        proc = subprocess.Popen([str(arg) for arg in args])
+        try:
+            code = proc.wait()
+        except BaseException:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+            raise
+    finally:
+        termios.tcsetattr(sys.stdin.fileno(), termios.TCSANOW, saved_terminal)
+    if code:
+        raise RuntimeError(f'Interactive session exited with status {code}.')
+
+
+def ssh_agent(name, command, *, user=USER, tty=False, runner=run, **kwargs):
     # SSH's connection is opened on guest loopback by the RPC agent. The host
     # never connects to a guest IP. sshd supplies macOS's normal login context;
     # the RPC daemon itself is not granted access to protected user files.
     proxy = shlex.join([tart_binary(), 'exec', '-i', name, '/usr/bin/nc', '127.0.0.1', '22'])
-    return run(['/usr/bin/ssh', '-F', '/dev/null', '-o', 'ProxyCommand=' + proxy,
+    return runner(['/usr/bin/ssh', '-F', '/dev/null', '-o', 'ProxyCommand=' + proxy,
                 '-o', 'HostKeyAlias=' + name, '-o', 'StrictHostKeyChecking=accept-new',
                 '-o', 'UserKnownHostsFile=' + str(ACCESS / 'known_hosts'),
                 '-i', ACCESS / 'id_ed25519', '-o', 'IdentityAgent=none',
@@ -505,11 +531,12 @@ def fixture(directory):
     run([GIT, '--git-dir', public / 'repo.git', 'update-server-info'], env=env)
     shutil.copy2(work / 'dotfiles', public / 'dotfiles')
     run(['/usr/bin/tar', '--no-xattrs', '--no-mac-metadata', '-czf', public / 'candidate.tar.gz', '--exclude=.git', '-C', work, '.'])
-    shutil.copy2(work / 'tests/guest-integration.sh', public / 'guest-integration.sh')
+    for script in ('guest-integration.sh', 'guest-interactive.sh'):
+        shutil.copy2(work / 'tests' / script, public / script)
     return public, revision
 
 
-def execute_suite(kind, mode, public, revision):
+def execute_suite(kind, mode, public, revision, *, online=False, graphical=False, keep=False):
     baseline = BASE_PREFIX + kind
     with stage(f'{kind}: validate baseline'):
         if not exists(baseline) or not (STATE / (kind + '.json')).exists():
@@ -525,6 +552,7 @@ def execute_suite(kind, mode, public, revision):
     message(f'{kind}: logs: {result_dir}')
     (result_dir / 'source.json').write_text(json.dumps({
         'fixture_revision': revision, 'baseline': metadata, 'mode': mode,
+        'online': online, 'graphical': graphical, 'keep': keep,
         'bats': json.loads((public.parent / 'work/tests/vendor/bats-core/UPSTREAM.json').read_text())
     }, indent=2) + '\n')
     state = {'stopped': False}
@@ -534,7 +562,7 @@ def execute_suite(kind, mode, public, revision):
         with stage(f'{kind}: clone VM'):
             clone_attempted = True
             tart('clone', baseline, name)
-        with (result_dir / 'tart.log').open('wb') as vm_log, boot(name, log=vm_log, state=state):
+        with (result_dir / 'tart.log').open('wb') as vm_log, boot(name, log=vm_log, state=state, online=online, graphical=graphical):
             with stage(f'{kind}: wait for guest agent'):
                 wait_agent(name)
             if kind == 'macos':
@@ -567,26 +595,43 @@ def execute_suite(kind, mode, public, revision):
                             if time.monotonic() > deadline or server.poll() is not None:
                                 raise RuntimeError('Guest fixture server did not become ready.')
                             time.sleep(0.5)
-                    completion = remote + '/bats-completed'
-                    guest_args = ['/bin/bash', remote + '/guest-integration.sh', mode,
-                                  'http://127.0.0.1:18765', revision, FORMAT, str(int(COLOR)), kind, completion,
-                                  str(int(INTERACTIVE)), str(COLUMNS)]
-                    with stage(f'{kind}: run {mode} tests'):
-                        # Inner shell checks allocate their own guest PTYs. Keep the existing
-                        # outer guest login/session transport, without requiring a host TTY.
-                        with (result_dir / 'guest.log').open('wb') as log:
-                            if kind == 'macos':
-                                result = ssh_agent(name, shlex.join(guest_args), tty=True,
-                                                   timeout=600, check=False, stream_log=log)
-                            else:
-                                command = shlex.join(['sudo', '-H', '-u', USER, *guest_args])
-                                result = tart('exec', name, '/usr/bin/script', '-q', '-e', '-c',
-                                              command, '/dev/null', timeout=600, check=False, stream_log=log)
-                        completed = tart('exec', name, 'cat', completion, check=False, text=True)
-                        if completed.returncode or completed.stdout.strip() != str(result.returncode):
-                            raise RuntimeError(f'{kind}: guest setup or transport failed (exit {result.returncode})')
-                        if result.returncode:
-                            raise TestFailure(f'{kind}/{mode}: Bats reported failures; logs: {result_dir}')
+                    if mode == 'interactive':
+                        guest_args = ['/bin/bash', remote + '/guest-interactive.sh',
+                                      'http://127.0.0.1:18765', revision]
+                        message(f'{kind}: opening interactive terminal in {name}')
+                        message('Networking: ' + ('internet enabled' if online else 'host-only (no internet routing)'))
+                        message('Exit the guest shell to stop the VM. ' +
+                                ('The stopped clone will be retained.' if keep else
+                                 'A successful session deletes the clone; use --keep to retain it.'))
+                        # Only TERM crosses into the guest; no host environment or credentials.
+                        term = os.environ.get('TERM') or 'xterm-256color'
+                        if kind == 'macos':
+                            ssh_agent(name, shlex.join(['env', 'TERM=' + term, *guest_args]),
+                                      tty=True, runner=terminal)
+                        else:
+                            terminal([tart_binary(), 'exec', '-i', '-t', name, 'sudo', '-H',
+                                      '-u', USER, 'env', 'TERM=' + term, *guest_args])
+                    else:
+                        completion = remote + '/bats-completed'
+                        guest_args = ['/bin/bash', remote + '/guest-integration.sh', mode,
+                                      'http://127.0.0.1:18765', revision, FORMAT, str(int(COLOR)), kind, completion,
+                                      str(int(INTERACTIVE)), str(COLUMNS)]
+                        with stage(f'{kind}: run {mode} tests'):
+                            # Inner shell checks allocate their own guest PTYs. Keep the existing
+                            # outer guest login/session transport, without requiring a host TTY.
+                            with (result_dir / 'guest.log').open('wb') as log:
+                                if kind == 'macos':
+                                    result = ssh_agent(name, shlex.join(guest_args), tty=True,
+                                                       timeout=600, check=False, stream_log=log)
+                                else:
+                                    command = shlex.join(['sudo', '-H', '-u', USER, *guest_args])
+                                    result = tart('exec', name, '/usr/bin/script', '-q', '-e', '-c',
+                                                  command, '/dev/null', timeout=600, check=False, stream_log=log)
+                            completed = tart('exec', name, 'cat', completion, check=False, text=True)
+                            if completed.returncode or completed.stdout.strip() != str(result.returncode):
+                                raise RuntimeError(f'{kind}: guest setup or transport failed (exit {result.returncode})')
+                            if result.returncode:
+                                raise TestFailure(f'{kind}/{mode}: Bats reported failures; logs: {result_dir}')
         success = True
     finally:
         # A failure before boot entered its cleanup (e.g. tart set/Popen) can
@@ -603,7 +648,7 @@ def execute_suite(kind, mode, public, revision):
                 REPORTS[kind + '/' + mode]['retained'] = name + ' (stop unconfirmed)'
                 message(f'Retained guest (stop unconfirmed): {name}; logs: {result_dir}', 33)
                 raise
-        if success and state['stopped']:
+        if success and state['stopped'] and not keep:
             REPORTS[kind + '/' + mode]['retained'] = name + ' (stopped)'
             with stage(f'{kind}: delete successful VM'):
                 tart('delete', name)
@@ -651,12 +696,22 @@ def main():
     started = time.monotonic()
     signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['host-syntax', 'lint', 'unit', 'quick', 'vm', 'prepare-vms'])
+    parser.add_argument('command', choices=['host-syntax', 'lint', 'unit', 'quick', 'vm', 'prepare-vms', 'interactive'])
     parser.add_argument('platform', nargs='?', choices=['macos', 'debian', 'all'], default='all')
     parser.add_argument('--format', choices=['auto', 'pretty', 'tap'], default='auto')
+    parser.add_argument('--online', action='store_true', help='interactive: enable guest internet access')
+    parser.add_argument('--gui', action='store_true', help='interactive: also show the VM window')
+    parser.add_argument('--keep', action='store_true', help='interactive: retain the stopped VM after exit')
     args = parser.parse_args()
-    if args.command not in ['vm', 'prepare-vms'] and args.platform != 'all':
-        parser.error('Only vm and prepare-vms accept a platform argument.')
+    if args.command not in ['vm', 'prepare-vms', 'interactive'] and args.platform != 'all':
+        parser.error('Only vm, prepare-vms, and interactive accept a platform argument.')
+    if args.command != 'interactive' and (args.online or args.gui or args.keep):
+        parser.error('--online, --gui, and --keep are only valid for interactive.')
+    if args.command == 'interactive':
+        if args.platform == 'all':
+            parser.error('Choose one platform: interactive macos or interactive debian.')
+        if not sys.stdin.isatty() or not sys.stdout.isatty():
+            parser.error('Interactive mode needs a terminal for stdin and stdout; do not pipe or redirect it.')
     global ACCESS, FORMAT, COLOR, INTERACTIVE, COLUMNS
     FORMAT, COLOR = choose_format(args.format)
     INTERACTIVE = FORMAT == 'pretty' and sys.stdout.isatty() and os.environ.get('TERM', 'dumb') != 'dumb'
@@ -668,8 +723,8 @@ def main():
         if args.command == 'prepare-vms':
             kinds = ['debian', 'macos'] if args.platform == 'all' else [args.platform]
             return run_suites([(kind, lambda kind=kind: prepare(kind)) for kind in kinds], started=started)
-        kinds = (['macos', 'debian'] if args.platform == 'all' else [args.platform]) if args.command == 'vm' else ['macos']
-        mode = 'integration' if args.command == 'vm' else 'unit'
+        kinds = (['macos', 'debian'] if args.platform == 'all' else [args.platform]) if args.command in ['vm', 'interactive'] else ['macos']
+        mode = 'interactive' if args.command == 'interactive' else 'integration' if args.command == 'vm' else 'unit'
         with tempfile.TemporaryDirectory(prefix='dotfiles-fixture-') as tmp:
             with stage('Freeze candidate snapshot'):
                 public, revision = fixture(Path(tmp))
@@ -677,7 +732,8 @@ def main():
             jobs = []
             if args.command == 'quick':
                 jobs.append(('lint', lambda: host_checks('lint', public.parent / 'work')))
-            jobs += [(kind + '/' + mode, lambda kind=kind: execute_suite(kind, mode, public, revision)) for kind in kinds]
+            jobs += [(kind + '/' + mode, lambda kind=kind: execute_suite(
+                kind, mode, public, revision, online=args.online, graphical=args.gui, keep=args.keep)) for kind in kinds]
             return run_suites(jobs, started=started)
 
 
