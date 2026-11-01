@@ -17,22 +17,21 @@
 
 get_script() {
 
-    declare -r OS_NAME="$(uname -s)"
-    local script="gzthermal"
+    local script
 
-    if [ "$OS_NAME" == "Darwin" ]; then
-        script="$script/osx"
-    elif [ "$OS_NAME" == "Linux" ]; then
-        script="$script/linux"
+    # These bundled executables are Intel binaries, not generic Linux/macOS files.
+    # Keep the native Intel route; never mistake ARM for 32-bit x86.
+    case "$(uname -s)/$(uname -m)" in
+        Linux/x86_64|Linux/amd64) script=gzthermal/linux-64 ;;
+        Linux/i386|Linux/i486|Linux/i586|Linux/i686) script=gzthermal/linux-32 ;;
+        Darwin/x86_64|Darwin/i386) script=gzthermal/osx ;;
+        *)
+            printf 'No bundled gzthermal executable for this OS/architecture.\n' >&2
+            return 1
+            ;;
+    esac
 
-        if [ "$(uname -m)" == "x86_64" ]; then
-            script="${script}-64"
-        else
-            script="${script}-32"
-        fi
-    fi
-
-    printf "%s" "$(dirname "${BASH_SOURCE}")/$script"
+    printf '%s/%s\n' "$(dirname "${BASH_SOURCE[0]}")" "$script"
 
 }
 
@@ -40,7 +39,8 @@ get_script() {
 
 main() {
 
-    declare -r script=$(get_script)
+    local script
+    script=$(get_script) || return 1
 
     local cmd=""
     local tmpFile=""

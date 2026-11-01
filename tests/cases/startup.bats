@@ -2,6 +2,12 @@
 # shellcheck source=tests/helpers/guest.bash
 source "$BATS_TEST_DIRNAME/../helpers/guest.bash"
 
+setup() {
+    guest_setup
+    # Bash startup files are discovered from the HOME-shaped tree.
+
+}
+
 function dotfiles__shell__login_with_term_xterm_256color_runs_repo_command { # @test
     install
     /bin/bash "$DOTFILES_CANDIDATE/tests/shell-check.sh" "$HOME" "$repo" xterm-256color login

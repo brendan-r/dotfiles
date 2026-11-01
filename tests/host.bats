@@ -16,3 +16,8 @@ function static__shell__scripts_pass_shellcheck { # @test
     cd "$DOTFILES_ROOT" || return
     "$DOTFILES_SHELLCHECK" --norc --external-sources --severity=style "${files[@]}"
 }
+
+# This Python check reads inert data and a temporary index; no UI code executes.
+function static__ui__build_manifest_checks_staged_contents { # @test
+    python3 "$DOTFILES_ROOT/tests/test_ui_build_check.py"
+}

@@ -25,9 +25,16 @@ GIT = '/usr/bin/git'
 BASE_PREFIX = 'dotfiles-baseline-'
 USER = 'dotfiles'
 ACCESS = None
-SHELL_FILES = ['dotfiles', 'os/create_symbolic_links.sh'] + [
-    'shell/' + n for n in ['bash_profile', 'bashrc', 'bash_exports', 'bash_aliases',
-    'bash_functions', 'bash_options', 'bash_prompt', 'bash_logout', 'bash_mac_stuff']]
+SHELL_FILES = ['.githooks/pre-commit', 'os/lib/download.sh', 'os/install_anki.sh', 'os/install_firefox.sh', 'os/install_spotify.sh',
+               'os/install_signal_desktop.sh', 'os/install_proton_vpn.sh',
+               'os/install_rstudio_desktop.sh', 'os/set_default_apps.sh', 'dotfiles', 'os/create_symbolic_links.sh', 'os/catalog_links.sh', 'os/yq.sh',
+               'os/ui.sh', 'os/install_i3.sh', 'home/debian/.xinitrc', 'home/debian/.config/i3/audio.sh', 'home/debian/.config/i3/touchpad.sh', 'home/debian/.config/i3/rotate-tablet.sh', 'home/debian/.config/polybar/launch.sh', 'home/debian/.config/polybar/battery.sh', 'home/macos/.yabairc', 'os/lib/setup.sh', 'os/lib/configuration.sh', 'os/lib/backup_history.sh', 'os/lib/launch_agents.sh',
+               'os/create_bash_local.sh', 'os/set_default_bash.sh', 'os/create_personal_directories.sh',
+               'os/link_personal_bin.sh', 'os/configure_keyboard_debian.sh',
+               'os/configure_emacs.sh', 'os/configure_macos_preferences.sh',
+               'os/register_skhd_service.sh', 'os/register_yabai_services.sh', 'os/post_install.sh', 'os/menu_catalog.sh', 'os/install_actions.sh', 'os/install_menu.sh'] + [
+    'home/' + n for n in ['common/.bash_profile', 'common/.bashrc', 'common/.bash_exports', 'common/.bash_aliases',
+    'common/.bash_functions', 'common/.bash_options', 'common/.bash_prompt', 'common/.bash_logout', 'macos/.bash_mac_stuff']]
 FORMAT = 'tap'
 COLOR = False
 INTERACTIVE = False
@@ -314,9 +321,24 @@ def exists(name):
     return any(v['Name'] == name and v['Source'] == 'local' for v in inventory())
 
 
-def wait_agent(name, seconds=120):
+class VMStartFailure(RuntimeError):
+    """Tart exited before its guest agent became available."""
+
+
+def check_vm_process(name, process, log=None):
+    if process is None or process.poll() is None:
+        return
+    detail = ''
+    if log is not None and isinstance(getattr(log, 'name', None), (str, Path)):
+        detail = '\n'.join(Path(log.name).read_text(errors='replace').splitlines()[-10:])
+    raise VMStartFailure(f'Tart exited while starting {name} (exit {process.returncode}).'
+                         + (f'\n{detail}' if detail else ' Inspect the Tart startup log.'))
+
+
+def wait_agent(name, seconds=120, *, process=None, log=None):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
+        check_vm_process(name, process, log)
         try:
             result = tart('exec', name, 'true', timeout=3, check=False,
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -362,8 +384,20 @@ def cleanup(label, action):
 
 
 def stop_vm(name):
-    tart('stop', name, timeout=30)
-    if any(v['Name'] == name and v['Running'] for v in inventory()):
+    def running():
+        return any(v['Name'] == name and v['Running'] for v in inventory())
+
+    # A launch failure can leave a clone whose process never started. Inventory
+    # confirms that state without turning Tart's "not running" exit into an error.
+    if not running():
+        return
+    try:
+        tart('stop', name, timeout=30)
+    except Exception:
+        # The VM can exit between the inventory query and the stop command.
+        if running():
+            raise
+    if running():
         raise RuntimeError(f'VM still running after stop: {name}')
 
 
@@ -372,9 +406,11 @@ def boot(name, *, online=False, graphical=False, disk=None, log=None, state=None
     state = {} if state is None else state
     with stage(f'{name}: start VM'):
         tart('set', name, '--cpu', '2', '--memory', '4096')
-        args = [tart_binary(), 'run', name, '--no-audio', '--no-clipboard', '--no-usb-accessories']
+        args = [tart_binary(), 'run', name, '--no-audio', '--no-clipboard']
         if not graphical:
-            args.append('--no-graphics')
+            # Linux uses virtual USB input devices. Disabling accessories also
+            # removes its keyboard and pointer, so only do this without a GUI.
+            args += ['--no-graphics', '--no-usb-accessories']
         if disk is not None:
             args += ['--disk', str(disk) + ':ro']
         if not online:
@@ -390,9 +426,8 @@ def boot(name, *, online=False, graphical=False, disk=None, log=None, state=None
             if proc.poll() is None:
                 terminate_process(proc)
     with cleanup(f'{name}: stop VM', stop):
-        if proc.poll() is not None:
-            raise RuntimeError(f'Tart exited while starting {name}; inspect its log.')
-        yield
+        check_vm_process(name, proc, log)
+        yield proc
 
 
 def prepare(kind):
@@ -410,14 +445,16 @@ def prepare(kind):
     print(f'Preparing {name}; guest networking enabled for prerequisites.', flush=True)
     with contextlib.ExitStack() as stack:
         disk = stack.enter_context(agent_setup_disk()) if kind == 'macos' else None
-        stack.enter_context(boot(name, online=True, graphical=(kind == 'macos'), disk=disk))
+        process = stack.enter_context(boot(name, online=True, graphical=(kind == 'macos'), disk=disk))
         if kind == 'macos':
             print('For a fresh vanilla VM, open its Terminal and run:\n\n'
                   '  /bin/bash /Volumes/DotfilesSetup/setup.sh\n\n'
                   'An already-installed guest agent needs no action.', flush=True)
         try:
             with stage(f'{kind}: wait for guest agent'):
-                wait_agent(name, seconds=90)
+                wait_agent(name, seconds=90, process=process)
+        except VMStartFailure:
+            raise
         except RuntimeError:
             if kind != 'macos':
                 raise
@@ -425,7 +462,7 @@ def prepare(kind):
                 raise RuntimeError('Rerun prepare-vms macos in an interactive terminal to complete guest setup.')
             print('Waiting up to 15 minutes for the guest agent...', flush=True)
             with stage(f'{kind}: wait for manual agent installation'):
-                wait_agent(name, seconds=900)
+                wait_agent(name, seconds=900, process=process)
         if kind == 'macos':
             authorize_admin(name)
 
@@ -503,7 +540,7 @@ def fixture(directory):
     work.mkdir()
     env = git_environment()
     tracked = run([GIT, '-C', ROOT, 'ls-files', '-z'], env=env, stdout=subprocess.PIPE).stdout.split(b'\0')
-    added = run([GIT, '-C', ROOT, 'ls-files', '--others', '--exclude-standard', '-z', '--', 'tests', 'os', 'shell'], env=env, stdout=subprocess.PIPE).stdout.split(b'\0')
+    added = run([GIT, '-C', ROOT, 'ls-files', '--others', '--exclude-standard', '-z', '--', 'tests', 'os', 'shell', 'ui', 'config', 'mac-stuff', 'keyboard', '.githooks', 'home'], env=env, stdout=subprocess.PIPE).stdout.split(b'\0')
     for raw in sorted(set(tracked + added)):
         if not raw:
             continue
@@ -536,7 +573,7 @@ def fixture(directory):
     return public, revision
 
 
-def execute_suite(kind, mode, public, revision, *, online=False, graphical=False, keep=False):
+def execute_suite(kind, mode, public, revision, *, online=False, graphical=False, keep=False, provision=False, only=""):
     baseline = BASE_PREFIX + kind
     with stage(f'{kind}: validate baseline'):
         if not exists(baseline) or not (STATE / (kind + '.json')).exists():
@@ -552,7 +589,7 @@ def execute_suite(kind, mode, public, revision, *, online=False, graphical=False
     message(f'{kind}: logs: {result_dir}')
     (result_dir / 'source.json').write_text(json.dumps({
         'fixture_revision': revision, 'baseline': metadata, 'mode': mode,
-        'online': online, 'graphical': graphical, 'keep': keep,
+        'online': online, 'graphical': graphical, 'keep': keep, 'provision': provision,
         'bats': json.loads((public.parent / 'work/tests/vendor/bats-core/UPSTREAM.json').read_text())
     }, indent=2) + '\n')
     state = {'stopped': False}
@@ -562,9 +599,9 @@ def execute_suite(kind, mode, public, revision, *, online=False, graphical=False
         with stage(f'{kind}: clone VM'):
             clone_attempted = True
             tart('clone', baseline, name)
-        with (result_dir / 'tart.log').open('wb') as vm_log, boot(name, log=vm_log, state=state, online=online, graphical=graphical):
+        with (result_dir / 'tart.log').open('wb') as vm_log, boot(name, log=vm_log, state=state, online=online, graphical=graphical) as process:
             with stage(f'{kind}: wait for guest agent'):
-                wait_agent(name)
+                wait_agent(name, process=process, log=vm_log)
             if kind == 'macos':
                 with stage(f'{kind}: authorize guest access'):
                     authorize_admin(name)
@@ -575,6 +612,20 @@ def execute_suite(kind, mode, public, revision, *, online=False, graphical=False
                             if kind == 'macos' else
                             '. /etc/os-release; test "$ID:$VERSION_CODENAME:$(uname -m)" = debian:trixie:aarch64')
                 tart('exec', name, '/bin/bash', '-ec', marker_check + '; ' + os_check)
+            if provision:
+                # Only the newly cloned guest gets these privileges; baselines stay unprivileged.
+                with stage(f'{kind}: enable provisioning in disposable clone'):
+                    # macOS also grants the admin group a password-based rule.
+                    # Let sudo -v accept the test account's NOPASSWD rule too.
+                    policy = ("Defaults:dotfiles verifypw=any\n"
+                              "dotfiles ALL=(ALL) NOPASSWD: ALL\n")
+                    policy_path = '/etc/sudoers.d/dotfiles-prototype'
+                    setup = ('sudo -n mkdir -p /etc/sudoers.d && '
+                             'printf %s ' + shlex.quote(policy) + ' | sudo -n tee ' + policy_path + ' >/dev/null && '
+                             'sudo -n chmod 440 ' + policy_path + ' && sudo -n visudo -cf /etc/sudoers')
+                    if kind == 'macos':
+                        setup += ' && sudo -n dseditgroup -o edit -a dotfiles -t user admin'
+                    tart('exec', name, '/bin/bash', '-ec', setup)
             remote = '/tmp/dotfiles-fixture-' + uuid.uuid4().hex[:8]
             with stage(f'{kind}: transfer candidate and Bats'):
                 tart('exec', name, 'sudo', '-u', USER, 'mkdir', remote)
@@ -597,7 +648,7 @@ def execute_suite(kind, mode, public, revision, *, online=False, graphical=False
                             time.sleep(0.5)
                     if mode == 'interactive':
                         guest_args = ['/bin/bash', remote + '/guest-interactive.sh',
-                                      'http://127.0.0.1:18765', revision]
+                                      'http://127.0.0.1:18765', revision, str(int(provision))]
                         message(f'{kind}: opening interactive terminal in {name}')
                         message('Networking: ' + ('internet enabled' if online else 'host-only (no internet routing)'))
                         message('Exit the guest shell to stop the VM. ' +
@@ -615,18 +666,21 @@ def execute_suite(kind, mode, public, revision, *, online=False, graphical=False
                         completion = remote + '/bats-completed'
                         guest_args = ['/bin/bash', remote + '/guest-integration.sh', mode,
                                       'http://127.0.0.1:18765', revision, FORMAT, str(int(COLOR)), kind, completion,
-                                      str(int(INTERACTIVE)), str(COLUMNS)]
+                                      str(int(INTERACTIVE)), str(COLUMNS), only]
                         with stage(f'{kind}: run {mode} tests'):
                             # Inner shell checks allocate their own guest PTYs. Keep the existing
                             # outer guest login/session transport, without requiring a host TTY.
                             with (result_dir / 'guest.log').open('wb') as log:
                                 if kind == 'macos':
                                     result = ssh_agent(name, shlex.join(guest_args), tty=True,
-                                                       timeout=600, check=False, stream_log=log)
+                                                       timeout=(3600 if mode == 'packages' else 600), check=False, stream_log=log)
                                 else:
                                     command = shlex.join(['sudo', '-H', '-u', USER, *guest_args])
                                     result = tart('exec', name, '/usr/bin/script', '-q', '-e', '-c',
-                                                  command, '/dev/null', timeout=600, check=False, stream_log=log)
+                                                  command, '/dev/null', timeout=(3600 if mode == 'packages' else 600), check=False, stream_log=log)
+                            with (result_dir / 'installer-logs.tar').open('wb') as logs:
+                                tart('exec', name, 'sudo', '-u', USER, 'tar', '-cf', '-', '-C', remote,
+                                     'bats-completed.logs', check=False, stdout=logs)
                             completed = tart('exec', name, 'cat', completion, check=False, text=True)
                             if completed.returncode or completed.stdout.strip() != str(result.returncode):
                                 raise RuntimeError(f'{kind}: guest setup or transport failed (exit {result.returncode})')
@@ -696,17 +750,23 @@ def main():
     started = time.monotonic()
     signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['host-syntax', 'lint', 'unit', 'quick', 'vm', 'prepare-vms', 'interactive'])
+    parser.add_argument('command', choices=['host-syntax', 'lint', 'unit', 'quick', 'vm', 'prepare-vms', 'interactive', 'packages'])
     parser.add_argument('platform', nargs='?', choices=['macos', 'debian', 'all'], default='all')
     parser.add_argument('--format', choices=['auto', 'pretty', 'tap'], default='auto')
+    parser.add_argument('--only', default='', help='packages: comma-separated catalogue features to test')
     parser.add_argument('--online', action='store_true', help='interactive: enable guest internet access')
     parser.add_argument('--gui', action='store_true', help='interactive: also show the VM window')
-    parser.add_argument('--keep', action='store_true', help='interactive: retain the stopped VM after exit')
+    parser.add_argument('--keep', action='store_true', help='interactive/packages: retain the stopped VM after exit')
+    parser.add_argument('--provision', action='store_true', help='interactive: grant administrative access in this disposable clone (requires --online)')
     args = parser.parse_args()
-    if args.command not in ['vm', 'prepare-vms', 'interactive'] and args.platform != 'all':
-        parser.error('Only vm, prepare-vms, and interactive accept a platform argument.')
-    if args.command != 'interactive' and (args.online or args.gui or args.keep):
-        parser.error('--online, --gui, and --keep are only valid for interactive.')
+    if args.command not in ['vm', 'prepare-vms', 'interactive', 'packages'] and args.platform != 'all':
+        parser.error('Only vm, prepare-vms, interactive, and packages accept a platform argument.')
+    if args.command != 'interactive' and (args.online or args.gui or (args.keep and args.command != 'packages')):
+        parser.error('--online and --gui require interactive; --keep also supports packages.')
+    if args.only and args.command != 'packages':
+        parser.error('--only requires packages.')
+    if args.provision and (args.command != 'interactive' or not args.online):
+        parser.error('--provision requires interactive --online.')
     if args.command == 'interactive':
         if args.platform == 'all':
             parser.error('Choose one platform: interactive macos or interactive debian.')
@@ -723,17 +783,23 @@ def main():
         if args.command == 'prepare-vms':
             kinds = ['debian', 'macos'] if args.platform == 'all' else [args.platform]
             return run_suites([(kind, lambda kind=kind: prepare(kind)) for kind in kinds], started=started)
-        kinds = (['macos', 'debian'] if args.platform == 'all' else [args.platform]) if args.command in ['vm', 'interactive'] else ['macos']
-        mode = 'interactive' if args.command == 'interactive' else 'integration' if args.command == 'vm' else 'unit'
+        kinds = (['macos', 'debian'] if args.platform == 'all' else [args.platform]) if args.command in ['vm', 'interactive', 'packages'] else ['macos']
+        mode = args.command if args.command in ['interactive', 'packages'] else 'integration' if args.command == 'vm' else 'unit'
         with tempfile.TemporaryDirectory(prefix='dotfiles-fixture-') as tmp:
             with stage('Freeze candidate snapshot'):
                 public, revision = fixture(Path(tmp))
                 message('Candidate commit: ' + revision)
+            with stage('Check UI source and vendored binaries'):
+                # Hash the frozen candidate, not files that may change during tests.
+                # This is a host-side data check; no candidate binary is executed.
+                run([sys.executable, ROOT / 'tests/check-ui-build.py',
+                     '--root', public.parent / 'work'])
             jobs = []
             if args.command == 'quick':
                 jobs.append(('lint', lambda: host_checks('lint', public.parent / 'work')))
             jobs += [(kind + '/' + mode, lambda kind=kind: execute_suite(
-                kind, mode, public, revision, online=args.online, graphical=args.gui, keep=args.keep)) for kind in kinds]
+                kind, mode, public, revision, online=(args.online or mode == 'packages'),
+                graphical=args.gui, keep=args.keep, provision=(args.provision or mode == 'packages'), only=args.only)) for kind in kinds]
             return run_suites(jobs, started=started)
 
 

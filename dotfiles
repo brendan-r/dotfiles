@@ -1,38 +1,71 @@
 #!/bin/bash
+
 # Bootstrap intentionally stands alone: it can be downloaded before the repo exists.
 set -eo pipefail
-fail() { printf 'dotfiles: %s\n' "$*" >&2; exit 1; }
-usage() {
-    cat <<'USAGE'
-Usage: dotfiles install [--backup]
-       dotfiles bootstrap [--repo URL] [--ref REVISION] [--directory PATH] [--backup]
 
-Git must already be installed. No packages, credentials, or OS preferences are changed.
+#  - - -  Explain usage and check prerequisites  - - -
+
+fail() {
+
+    printf 'dotfiles: %s\n' "$*" >&2
+    exit 1
+
+}
+
+usage() {
+
+    cat <<'USAGE'
+Usage: dotfiles install [--backup] [--links-only | --only ID,ID [--yes]]
+       dotfiles bootstrap [--repo URL] [--ref REVISION] [--directory PATH] [installation options]
+
+Install opens a menu; bootstrap opens the same menu after obtaining the repository.
+--links-only preserves the unattended, all-dotfiles symlink installer.
+--only selects explicit feature IDs; --yes approves that plan and its prerequisites.
+--backup preserves conflicting configuration before replacement. Run without sudo.
+--retry-emacs-bootstrap reruns startup for the selected Emacs configuration, preserving its checkout.
+Git must already be installed for bootstrap.
 Existing checkouts are reused without updating or discarding local changes.
 USAGE
+
 }
+
 platform() {
+
     case "$(uname -s)" in
-        Darwin) printf 'macos\n' ;;
+        Darwin)
+            printf 'macos\n'
+            ;;
         Linux)
             [ -r /etc/os-release ] || fail 'Unsupported Linux distribution (expected Debian).'
             # shellcheck disable=SC1091
             . /etc/os-release
             [ "${ID:-}" = debian ] || fail 'Unsupported Linux distribution (expected Debian).'
-            printf 'debian\n' ;;
-        *) fail 'Supported systems: macOS and Debian.' ;;
+            printf 'debian\n'
+            ;;
+        *)
+            fail 'Supported systems: macOS and Debian.'
+            ;;
     esac
+
 }
+
 require_git() {
+
     local git_path
+
     git_path=$(command -v git) || fail 'Git is required. Install Command Line Tools on macOS (xcode-select --install), or git on Debian (sudo apt install git ca-certificates).'
     if [ "$os" = macos ] && [ "$git_path" = /usr/bin/git ]; then
         /usr/bin/xcode-select -p >/dev/null 2>&1 || fail 'Git requires Command Line Tools. Run xcode-select --install, complete installation, then rerun bootstrap.'
     fi
     git --version >/dev/null 2>&1 || fail 'Git is not working. Repair its installation, then rerun bootstrap.'
+
 }
+
 canonical_repo() {
+
     local value=$1
+
+    # Existing SSH checkouts and the default HTTPS URL identify the same repo.
     case "$value" in
         git@github.com:*) value="https://github.com/${value#git@github.com:}" ;;
     esac
@@ -40,42 +73,123 @@ canonical_repo() {
         https://github.com/*) printf '%s\n' "${value%.git}" | tr '[:upper:]' '[:lower:]' ;;
         *) printf '%s\n' "$value" ;;
     esac
+
 }
+
+#  - - -  Parse the public command and its options  - - -
+
 command_name=${1:---help}
-case "$command_name" in --help|-h) usage; exit 0 ;; install|bootstrap) shift ;; *) usage >&2; exit 2 ;; esac
+
+case "$command_name" in
+    --help|-h)
+        usage
+        exit 0
+        ;;
+    install|bootstrap)
+        shift
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac
+
 repository=https://github.com/brendan-r/dotfiles.git
 revision=master
 explicit_revision=false
 destination=${HOME:?}/projects/dotfiles
 backup=false
+links_only=false
+only=''
+assume_yes=false
+retry_emacs_bootstrap=false
+
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --backup) backup=true; shift ;;
+        --backup)
+            backup=true
+            shift
+            ;;
+        --links-only)
+            links_only=true
+            shift
+            ;;
+        --only)
+            [ "$#" -ge 2 ] && [ -n "$2" ] || fail 'Missing option names for --only.'
+            case "$2" in
+                ,*|*,|*,,*|*[[:cntrl:]]*) fail 'Use comma-separated option names for --only.' ;;
+            esac
+            only=$2
+            shift 2
+            ;;
+        --retry-emacs-bootstrap)
+            retry_emacs_bootstrap=true
+            shift
+            ;;
+        --yes)
+            assume_yes=true
+            shift
+            ;;
         --repo|--ref|--directory)
             [ "$command_name" = bootstrap ] || fail "$1 is only valid for bootstrap."
-            if [ "$#" -lt 2 ] || [ -z "$2" ]; then fail "Missing value for $1."; fi
+
+            if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+                fail "Missing value for $1."
+            fi
+
             case "$1" in
                 --repo) repository=$2 ;;
-                --ref) revision=$2; explicit_revision=true ;;
+                --ref)
+                    revision=$2
+                    explicit_revision=true
+                    ;;
                 --directory) destination=$2 ;;
             esac
-            shift 2 ;;
-        --help|-h) usage; exit 0 ;;
-        *) fail "Unknown option: $1" ;;
+
+            shift 2
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            fail "Unknown option: $1"
+            ;;
     esac
 done
+
 [ "${EUID}" -ne 0 ] || fail 'Run as your normal user, without sudo.'
 os=$(platform)
+
+#  - - -  Reject ambiguous or unattended requests before cloning or changing files  - - -
+
+if "$links_only" && { [ -n "$only" ] || "$assume_yes" || "$retry_emacs_bootstrap"; }; then
+    fail '--links-only cannot be combined with --only, --yes or --retry-emacs-bootstrap.'
+fi
+
+if "$assume_yes" && [ -z "$only" ]; then
+    fail '--yes requires an explicit --only selection.'
+fi
+
+if ! "$links_only" && ! "$assume_yes"; then
+    [ -t 0 ] && [ -t 1 ] || fail 'Interactive installation needs a terminal. Use --links-only or --only ID,ID --yes for unattended use.'
+fi
+
+#  - - -  Obtain or reuse a checkout, preserving existing work  - - -
+
 if [ "$command_name" = bootstrap ]; then
+
     require_git
     case "$repository" in -*) fail 'Repository must not begin with a dash.' ;; esac
     case "$revision" in -*) fail 'Revision must not begin with a dash.' ;; esac
     case "$destination" in /*) ;; *) destination="$PWD/$destination" ;; esac
     [ ! -L "$destination" ] || fail "Checkout destination is a symlink: $destination"
+
     if [ -e "$destination" ]; then
         [ -d "$destination/.git" ] || [ -f "$destination/.git" ] || fail "Destination is not a Git checkout: $destination"
         origin=$(git -C "$destination" remote get-url origin) || fail 'Existing checkout has no origin.'
         [ "$(canonical_repo "$origin")" = "$(canonical_repo "$repository")" ] || fail 'Existing checkout belongs to another repository.'
+
         if "$explicit_revision"; then
             requested=$(git -C "$destination" rev-parse --verify "$revision^{commit}") || fail 'Requested revision is not available in the existing checkout.'
             [ "$requested" = "$(git -C "$destination" rev-parse HEAD)" ] || fail 'Existing checkout is at another revision. Change it explicitly before rerunning.'
@@ -85,8 +199,10 @@ if [ "$command_name" = bootstrap ]; then
         mkdir -p "$parent"
         staging=$(mktemp -d "$parent/.dotfiles-clone.XXXXXX")
         trap 'rm -rf "$staging"' EXIT
+
         # Disable credential prompts; fetching this public repo requires no account.
         GIT_TERMINAL_PROMPT=0 git clone -- "$repository" "$staging/repo"
+
         if git -C "$staging/repo" rev-parse --verify "$revision^{commit}" >/dev/null 2>&1; then
             git -C "$staging/repo" checkout "$revision" --
         elif git -C "$staging/repo" show-ref --verify --quiet "refs/remotes/origin/$revision"; then
@@ -94,15 +210,52 @@ if [ "$command_name" = bootstrap ]; then
         else
             fail "Requested revision does not identify a commit: $revision"
         fi
+
+        # Only publish the destination once cloning and revision selection succeed.
         mv "$staging/repo" "$destination"
         rm -rf "$staging"
         trap - EXIT
     fi
+
+    # Use the selected checkout's own installer, forwarding installation choices.
     args=(install)
-    if "$backup"; then args+=(--backup); fi
+    if "$backup"; then
+        args+=(--backup)
+    fi
+
+    if "$links_only"; then
+        args+=(--links-only)
+    fi
+
+    if [ -n "$only" ]; then
+        args+=(--only "$only")
+    fi
+
+    if "$assume_yes"; then
+        args+=(--yes)
+    fi
+
+    if "$retry_emacs_bootstrap"; then
+        args+=(--retry-emacs-bootstrap)
+    fi
+
     exec /bin/bash "$destination/dotfiles" "${args[@]}"
 fi
+
+#  - - -  Run the selected installation mode from this checkout  - - -
+
+# Use the checkout containing this command, including when it is a worktree.
 root=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-args=("$root" "$os")
-if "$backup"; then args+=(--backup); fi
-exec /bin/bash "$root/os/create_symbolic_links.sh" "${args[@]}"
+
+if "$links_only"; then
+    args=("$root" "$os")
+
+    if "$backup"; then
+        args+=(--backup)
+    fi
+
+    exec /bin/bash "$root/os/create_symbolic_links.sh" "${args[@]}"
+fi
+
+export DOTFILES_RETRY_EMACS_BOOTSTRAP="$retry_emacs_bootstrap"
+exec /bin/bash "$root/os/install_menu.sh" "$root" "$os" "$backup" "$only" "$assume_yes"

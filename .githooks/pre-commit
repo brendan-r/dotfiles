@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#  - - -  Check UI builds on Go development machines  - - -
+
+# Check index contents, so unstaged edits cannot leak into a partial commit.
+# This hook never rebuilds or stages files. Ordinary dotfiles machines should
+# be able to commit any edits without installing development tools.
+set -eo pipefail
+
+# No Go on PATH means no build enforcement (and no Python dependency here).
+if ! command -v go >/dev/null 2>&1; then
+    exit 0
+fi
+
+root=$(git rev-parse --show-toplevel)
+python3 "$root/tests/check-ui-build.py" --root "$root" --staged

@@ -1,0 +1,30 @@
+{
+  "version": "v4.54.1",
+  "release": "https://github.com/mikefarah/yq/releases/tag/v4.54.1",
+  "assets": [
+    {
+      "name": "yq_darwin_amd64",
+      "url": "https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_darwin_amd64",
+      "sha256": "3a812fce205a4d67014fb71b7fa297092210e580df3d8f52dddc2cf3a599c22b"
+    },
+    {
+      "name": "yq_darwin_arm64",
+      "url": "https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_darwin_arm64",
+      "sha256": "fee511a181bd8b3e6b7da98842b41973bfac8cd3bcd341ed29a584620b5b2844"
+    },
+    {
+      "name": "yq_linux_amd64",
+      "url": "https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_linux_amd64",
+      "sha256": "8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f"
+    },
+    {
+      "name": "yq_linux_arm64",
+      "url": "https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_linux_arm64",
+      "sha256": "189088da0c6429ec5178dfaab1a114805f6cab0b61b165ab236efedf1d57a71b"
+    }
+  ],
+  "license": {
+    "url": "https://raw.githubusercontent.com/mikefarah/yq/v4.54.1/LICENSE",
+    "sha256": "697db34dabb21562fe84487a2ccd031fbd45382b89c2cbdec8ef31682c486040"
+  }
+}

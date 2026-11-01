@@ -3,7 +3,7 @@
 sudo apt install keyd
 
 # The config file has to live under /etc/ to act system wide.
-sudo ln -s ~/projects/dotfiles/config/keyd/default.conf /etc/keyd/default.conf
+sudo ln -s ~/projects/dotfiles/home/debian/.config/keyd/default.conf /etc/keyd/default.conf
 
 # Load the config
 sudo keyd.rvaiya reload

@@ -279,7 +279,7 @@ def vm_lifecycle(mode='unit', keep=False):
                     code = 1 if scenario == 'transport' else 0
                     out = '1\n' if scenario == 'assertion' else '0\n'
                 return subprocess.CompletedProcess(args, code, out)
-            def ready(name):
+            def ready(name, **kwargs):
                 if scenario == 'setup':
                     raise RuntimeError('injected agent failure')
             def fake_terminal(args):
@@ -306,10 +306,11 @@ def vm_lifecycle(mode='unit', keep=False):
             assert all(proc.done for proc in processes), scenario
             deleted = any(args[0] == 'delete' for args in calls)
             assert deleted == (scenario == 'pass' and not keep), (scenario, calls)
+            boot_args = next(args for args in process_args if args[1] == 'run')
+            assert '--no-clipboard' in boot_args
+            assert ('--no-usb-accessories' in boot_args) == (mode != 'interactive')
             if mode == 'interactive':
-                boot_args = next(args for args in process_args if args[1] == 'run')
                 assert '--net-host' not in boot_args and '--no-graphics' not in boot_args
-                assert '--no-clipboard' in boot_args and '--no-usb-accessories' in boot_args
                 assert not any('/usr/bin/script' in args for args in calls)
                 if scenario != 'setup':
                     assert len(terminal_calls) == 1
@@ -331,6 +332,40 @@ def vm_lifecycle(mode='unit', keep=False):
                 assert 'Retained guest (stopped)' in text.getvalue()
     h.subprocess.Popen = original_popen
     h.ROOT, h.STATE = original_root, original_state
+
+
+def failed_vm_start():
+    class Exited:
+        returncode = 1
+        def poll(self):
+            return self.returncode
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / 'tart.log'
+        path.write_text('The number of VMs exceeds the system limit\n')
+        with path.open('rb') as log:
+            started = time.monotonic()
+            try:
+                h.wait_agent('failed-clone', process=Exited(), log=log)
+            except h.VMStartFailure as exc:
+                assert 'exceeds the system limit' in str(exc), exc
+            else:
+                raise AssertionError('Exited VM was treated as a pending agent')
+            assert time.monotonic() - started < 1
+
+    def unexpected_stop(*args, **kwargs):
+        raise AssertionError('Already stopped VM must not receive another stop')
+    h.inventory = lambda: [{'Name': 'failed-clone', 'Running': False}]
+    h.tart = unexpected_stop
+    h.stop_vm('failed-clone')
+
+    running = [True]
+    h.inventory = lambda: [{'Name': 'failed-clone', 'Running': running[0]}]
+    def raced_stop(*args, **kwargs):
+        running[0] = False
+        raise OSError('VM is not running')
+    h.tart = raced_stop
+    h.stop_vm('failed-clone')
 
 
 def interactive_lifecycle():

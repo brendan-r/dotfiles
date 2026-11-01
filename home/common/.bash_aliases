@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# ----------------------------------------------------------------------
+# | Navigation                                                         |
+# ----------------------------------------------------------------------
+
+alias ~="cd ~"
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias cd..="cd .."
+
+# ----------------------------------------------------------------------
+# | Network                                                            |
+# ----------------------------------------------------------------------
+
+alias ip="dig +short myip.opendns.com @resolver1.opendns.com"
+
+# ----------------------------------------------------------------------
+# | Package Managers                                                   |
+# ----------------------------------------------------------------------
+
+# npm
+# https://docs.npmjs.com/
+
+if [ -x "$(command -v npm)" ]; then
+    alias npmi="npm install"
+    alias npmr="npm uninstall"
+    alias npms="npm search"
+    alias npmu="npm update"
+fi
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Advanced Packaging Tool
+
+if [ "${DOTFILES_OS:-}" = linux ]; then
+    alias apti="sudo apt install"
+    alias aptr="sudo apt remove"
+    alias apts="sudo apt search"
+    alias aptu="sudo apt update && sudo apt upgrade"
+    alias update="aptu"
+fi
+
+# ----------------------------------------------------------------------
+# | Shorter Commands                                                   |
+# ----------------------------------------------------------------------
+
+alias :q="exit"
+alias c="clear"
+alias ch="history -c && > ~/.bash_history"
+alias g="git"
+alias ll="ls -l"
+alias m="man"
+alias map="xargs -n1"
+alias q="exit"
+alias rm="rm -rf"
+
+
+# ----------------------------------------------------------------------
+# | Personal stuff                                                     |
+# ----------------------------------------------------------------------
+if [ "${DOTFILES_OS:-}" = linux ]; then
+    alias wifi="sudo service network-manager restart"
+    alias cc="xclip -selection clip"
+    alias hide-desktop-icons="gsettings set org.gnome.desktop.background show-desktop-icons false"
+    alias show-desktop-icons="gsettings set org.gnome.desktop.background show-desktop-icons true"
+    alias o="xdg-open"
+else
+    alias cc="pbcopy"
+    alias o="open"
+fi

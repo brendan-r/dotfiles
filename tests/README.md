@@ -33,8 +33,6 @@ Obtain the archive and published checksum from the [official release](https://gi
 
 Every macOS test clone is authorized afresh, so a prepared baseline can be used on another Mac without copying a private key. On a new Mac, install the host prerequisites and run preparation, or import your existing prepared Tart baseline and copy its matching `macos.json` metadata. This harness currently runs VMs on Apple Silicon macOS; local lint also works on Debian.
 
-Older harness versions stored `id_ed25519`, `id_ed25519.pub`, and `known_hosts` in the state directory. Those files are no longer read or needed by this harness. They are not automatically deleted; you can remove those dedicated legacy files after checking that nothing else uses them.
-
 ## Prepare baselines once
 
 ```sh
@@ -57,9 +55,10 @@ Vanilla macOS has no Tart agent. Run initial preparation in an interactive host 
 
 This is a one-time manual prerequisite for a newly created vanilla baseline. The script downloads the official guest-agent archive inside the VM, verifies its pinned SHA-256, and installs a persistent RPC service as the guest's `admin` user. It refuses to run outside a macOS VM. The service does not enable clipboard sharing or automatic disk resizing. No Homebrew, Node, Ruby, or CI tools are added. The host resumes preparation when the agent becomes available, then removes the temporary setup disk after stopping the VM. An existing baseline with the agent already installed skips the manual step. Routine tests require no interaction.
 
-This replaces the Debian relay rather than moving that dependency elsewhere. The setup disk contains only the installer script, with no keys or host files.
+The setup disk contains only the installer script, with no keys or host files.
 
-Preparation creates a dedicated `dotfiles` account with no administrative rights. Debian starts test commands as that account through `sudo`; macOS logs in as that account using the temporary test key. Only the key's public half is installed in the guest. The administrative provisioning identity is not used to execute candidate code. It records guest OS/tool versions and the pinned image in state metadata, then stops the baseline. It never silently refreshes a validated baseline. To rebuild, explicitly delete the relevant `dotfiles-baseline-*` VM and its corresponding state JSON. Never delete unrelated VMs.
+Preparation creates a dedicated `dotfiles` account with no administrative rights. Debian starts test commands as that account through `sudo`; macOS logs in as that account using the temporary test key. Only the key's public half is installed in the guest. Routine suites never grant administrative access to candidate code. The explicit
+package suite and interactive `--provision` mode grant it only inside fresh clones. It records guest OS/tool versions and the pinned image in state metadata, then stops the baseline. It never silently refreshes a validated baseline. To rebuild, explicitly delete the relevant `dotfiles-baseline-*` VM and its corresponding state JSON. Never delete unrelated VMs.
 
 No host privacy, firewall, VPN, or routing settings are changed. If the guest agent or guest SSH fails, the harness reports the failure rather than executing candidate code on the host.
 
@@ -77,9 +76,7 @@ No host privacy, firewall, VPN, or routing settings are changed. If the guest ag
 
 Host syntax checks only parse files. No host behavioral mode exists. `quick` reuses downloaded baselines, not an already-modified guest. Lint covers the maintained entrypoint, linker, installed Bash files, and guest test scripts; historical application installers are outside the initial gate.
 
-The former tooling VM is no longer used or prepared. If you have an old `dotfiles-baseline-tooling`, you can remove that VM and its `tooling.json` state file manually; lint does not delete existing VM data.
-
-The harness builds a temporary Git repository from tracked working-tree files (including edits) and new files in `tests/`, `os/`, and `shell/`. Deleted tracked files stay deleted; ignored files and unrelated untracked directories are omitted. It does not stage or commit anything in the real repository. Fixtures containing symlinks are rejected to prevent the HTTP server from following links into host files. One snapshot is frozen per command and shared by both platforms; later working-tree edits cannot change an in-progress run. The fixture commit is synthetic and recorded in each result.
+The harness builds a temporary Git repository from tracked working-tree files (including edits) and new files in `tests/`, `os/`, `shell/`, `ui/`, `config/`, `mac-stuff/`, `keyboard/`, `.githooks/` and `home/`. Deleted tracked files stay deleted; ignored files and unrelated untracked directories are omitted. It does not stage or commit anything in the real repository. Fixtures containing symlinks are rejected to prevent the HTTP server from following links into host files. One snapshot is frozen per command and shared by both platforms; later working-tree edits cannot change an in-progress run. The fixture commit is synthetic and recorded in each result.
 
 The same download/execute procedure documented in [BOOTSTRAP.md](../BOOTSTRAP.md) fetches the candidate bootstrap from the fixture server. Its repository URL points to a cloneable HTTP fixture. Tests assert the installed commit and origin. No push is necessary, and tests do not accidentally fetch unchanged GitHub `master`.
 
@@ -97,7 +94,7 @@ Run this in a real terminal on the host after preparing the corresponding baseli
 ./tests/run interactive macos --keep      # Preserve the stopped clone after exit
 ```
 
-The command freezes your current working-tree snapshot, clones a fresh VM, and opens a real guest terminal as the non-administrator `dotfiles` account. It clones the candidate into `~/projects/dotfiles` inside the guest and starts there **without running the installer**. Try `./dotfiles install --backup`, answer prompts, inspect the results, and use `exec /bin/bash -il` to load the installed shell configuration. Input, terminal menus, Ctrl-C, and terminal resizing pass through the terminal transport. The current maintained installer has command-line options rather than a menu; this mode also supports scripts that prompt interactively.
+The command freezes your current working-tree snapshot, clones a fresh VM, and opens a real guest terminal as the `dotfiles` account (unprivileged unless `--provision` is given). It clones the candidate into `~/projects/dotfiles` inside the guest and starts there **without running the installer**. Try `./dotfiles install --backup`, answer prompts, inspect the results, and use `exec /bin/bash -il` to load the installed shell configuration. Input, terminal menus, Ctrl-C, and terminal resizing pass through the terminal transport. The maintained installer opens its Bubble Tea menu in this terminal.
 
 The welcome message includes commands for testing the download/bootstrap path against the same local snapshot. `DOTFILES_FIXTURE_URL` and `DOTFILES_REVISION` are available in the guest shell. The fixture server runs inside the guest on loopback while the session is open. No commit or push is required. Host edits made after launch do not change the running candidate, and guest edits never sync back to the host.
 
@@ -105,11 +102,11 @@ Use `exit 0` to finish successfully. The runner stops and deletes the clone afte
 
 `--keep` preserves the disk for manual inspection; it does not add a resume command. The summary prints the VM name for Tart inspection or `tart delete NAME` when finished. Temporary access keys and the fixture server are cleaned up even when retaining the disk; starting another `interactive` command always creates a new clone. Infrastructure logs and `source.json` are saved in `.test-results/`; terminal contents and typed input are not recorded in `guest.log`. An interactive `PASS` means the session and cleanup finished successfully, not that automated assertions ran.
 
-Networking remains host-only by default, with the same host-network caveat described above. `--online` explicitly enables the VM's ordinary internet routing. `--gui` adds the VM console window; the interactive command still runs in your host terminal, and the console may be logged into a different account. Neither option shares host directories, clipboard, audio, USB accessories, or personal credentials. The account remains non-administrative, so this mode does not automatically grant permissions for system package installers. The three flags apply only to `interactive`, which requires exactly one platform and terminal stdin/stdout; piping or redirecting the command is rejected before creating a VM.
+Networking remains host-only by default, with the same host-network caveat described above. `--online` explicitly enables the VM's ordinary internet routing. `--gui` adds the VM console window; the interactive command still runs in your host terminal, and the console may be logged into a different account. Neither option shares host directories, clipboard, audio, or personal credentials. Graphical mode retains Tart’s virtual USB keyboard and pointer; `--no-usb-accessories` is only used headlessly because it removes Linux console input devices. The account remains non-administrative unless `--provision` is explicitly added with `--online`. These flags apply only to `interactive`, which requires exactly one platform and terminal stdin/stdout; piping or redirecting the command is rejected before creating a VM.
 
 ## One framework and live output
 
-Bats-core runs every test: local static checks, guest behavior, full installation, and guest-only Python harness probes with fake transports. The Python entrypoint manages VMs, subprocesses, and progress; it is not another test framework. All nine terminal/startup combinations appear individually for isolated guest homes. The full account installation retains one interactive-login startup check with `TERM=xterm-256color`. Each full VM suite has 39 named cases: 30 dotfiles cases and nine runner cases. The two local static checks are separate. Tests use Bash-compatible function syntax with `# @test` so syntax checks can parse them without executing them.
+Bats-core runs every test: local static checks, guest behavior, full installation, and guest-only Python harness probes with fake transports. The Python entrypoint manages VMs, subprocesses, and progress; it is not another test framework. All nine terminal/startup combinations appear individually for isolated guest homes. The full account installation retains one interactive-login startup check with `TERM=xterm-256color`. The full VM suites include installer and harness cases; the local static checks are separate. Tests use Bash-compatible function syntax with `# @test` so syntax checks can parse them without executing them.
 
 Test names follow `area__component__expected_behavior`: double underscores separate the three levels, and single underscores separate words within a level. Use lowercase names that describe the observable outcome, for example `dotfiles__install__conflicts_preserve_originals_before_linking` or `runner__processes__timeout_stops_child`. Put case variations in the final level, such as `dotfiles__shell__login_with_term_unset_runs_repo_command`. Keep the execution platform out of the name: the runner adds `[host]`, `[macos]`, or `[debian]` separately.
 
@@ -138,7 +135,10 @@ VM operations print their start and completion immediately. Guest test results s
 
 Bats continues after independent test failures. The harness also continues to the next platform after a suite or setup failure, and `quick` still runs guest tests if lint fails. An infrastructure failure aborts the affected suite. Any failed check, setup, or cleanup makes the command exit nonzero. Ctrl-C/SIGTERM stops scheduling new work and cleans up the current guest.
 
-## Vendored dependency
+## Vendored dependencies
+
+The installer uses pinned yq binaries bundled under [os/vendor/yq](../os/vendor/yq/README.md) to read [os/catalog.yaml](../os/catalog.yaml); dotfile paths are discovered directly from the HOME-shaped `home/` tree. These binaries travel with the candidate into each VM. Host lint parses shell wrappers but does not execute the candidate parser.
+
 
 `vendor/bats-core` contains the unchanged `bin`, `lib`, and `libexec` runtime and `LICENSE.md` from Bats-core **v1.14.0**. `UPSTREAM.json` records the source commit and SHA-256 of the upstream release archive. The runtime is about 188 KiB. The same files run on the host and travel in the candidate archive into each guest. No Bats installation, baseline rebuild, or test-time download is needed. The project formatter lives outside the vendor directory in `format-pretty` and uses the pinned Bats formatter callbacks. No assertion plugins are required.
 
@@ -157,60 +157,152 @@ Local checks write `host.log` under a corresponding `dotfiles-test-host-*` direc
 
 The harness bounds startup, provisioning, and execution, including silent subprocesses, except the deliberately unbounded interactive terminal session. It stops guests on exit and deletes successful test clones only after verifying they stopped. Failed guests are retained for inspection. If stopping fails, output explicitly says stopping is unconfirmed; it never claims the VM stopped successfully. Original failures and cleanup failures are both reported. Delete retained guests individually with `tart delete NAME` when finished. Logs remain until you choose to remove them.
 
-Completion requires local `lint`, `vm macos`, and `vm debian` to pass on the same source snapshot. `vm all` freezes one snapshot for both full suites. Each includes the behavioral and harness cases also run by `unit`, so running `quick` as well is optional. Testing the published GitHub one-liner is a separate post-publication check. No GitHub Actions workflow is included in this milestone.
+To check a change on both platforms, run local `lint`, `vm macos`, and `vm debian` against the same source snapshot. `vm all` freezes one snapshot for both full suites. Each includes the behavioral and harness cases also run by `unit`, so running `quick` as well is optional. Testing the published GitHub one-liner is a separate post-publication check. There is no GitHub Actions workflow.
 
 ## Test coverage and gaps
 
-The current milestone is downloading a checkout, installing configuration links, and starting Bash successfully on prepared macOS and Debian guests. Each full VM suite contains 30 dotfiles cases and nine runner cases; the two host static checks are separate. A passing suite establishes this limited bootstrap behavior, not that the repository can provision a complete working machine or that every linked configuration works in its application.
+Routine VM cases exercise dotfile discovery and linking, selection and dependency
+handling, backups and migration, shell startup, catalogue parsing, reminders,
+installer status, interruption, and the test harness. They use synthetic
+catalogues and package commands where practical. The opt-in package suite installs
+real available packages, reruns the installer and checks package-manager receipts;
+it does not establish that every application runs correctly.
 
-### Types of tests
+The macOS preference tests reject a headless session before changing settings.
+In a graphical session they also check the active image, preference values and
+preservation of unrelated settings across reruns. If macOS blocks the Reduce
+Motion write, they check that the failure explains the manual step instead. They
+do not test shortcuts or animation after logout. The default-app script has link, backup and rerun tests;
+the suitability of its application associations has not been checked.
 
-The `unit` command runs focused behavioral tests in a real VM, including real filesystem operations, Git commands, and shell processes. Its name does not mean all these tests are isolated functions with mocked dependencies. Temporary homes separate the cases inside the VM. Full VM suites add the four `dotfiles / full_install` cases in the guest account's actual home. Runner tests deliberately use subprocess fixtures and mocked VM operations to exercise failure paths without needing to break a real VM.
+The optional i3 check starts an X11 session and exercises basic window and
+notification behavior. VMs cannot establish physical keyboard, display, audio,
+battery, dock or suspend behavior on the target ThinkPads. The Debian VM runs
+on ARM64, not the intended AMD64 hardware. Yabai/skhd permissions, GUI Emacs,
+application logins and real VPN connections also need hands-on validation.
 
-- **`static / shell` — 2 cases; static analysis on the host.** Runs Bash's parser and ShellCheck without sourcing or executing the candidate configuration. The selected files are the `dotfiles` entrypoint, `os/create_symbolic_links.sh`, the maintained Bash startup fragments listed in `SHELL_FILES` in [run](run), and non-vendored shell/Bats test scripts. This catches syntax, quoting, and other shell mistakes. It is not repository-wide lint: historical installers, `bin` utilities, Python/R code, and application configuration formats are outside these checks. Cases: [host.bats](host.bats).
+Tests do not cover every shell alias, personal utility or Git setting, nor the
+separate personal-data backup workflow. They cover selected backup failures and
+interruptions, not every recovery scenario, full disk or concurrent install.
+The published bootstrap URL and a completely untouched machine are not exercised
+by the local fixture. See [platform support](../docs/architecture-review.md)
+for the AMD64 checks and their limits.
 
-- **`dotfiles / install` — 8 cases; filesystem behavior in temporary guest homes.** Runs the actual installer against disposable copies of the repository. Checks that the selected platform's manifest entries become working symlinks, paths containing spaces work, repeated installs avoid unnecessary backups, and already-correct relative links survive. Conflict and backup cases exercise ordinary files, directories, dangling symlinks, symlinked parent directories, and a missing source. An unsupported OS name must be rejected. Assertions inspect resulting links and preserved contents; they do not validate the settings inside linked files. Cases: the install group in [cases/behavior.bats](cases/behavior.bats).
+## Package installation tests
 
-- **`dotfiles / checkout` — 9 cases; Git/bootstrap integration with a local HTTP fixture.** Invokes the real bootstrap and Git against a disposable repository served inside the guest. Checks the cloned revision and origin, an actionable missing-Git error, reuse of an existing checkout, retention of a local edit and an untracked file, acceptance of the historical SSH-form origin, rejection of a different origin, invalid-reference handling, cleanup after clone failures, and preservation of an unrelated destination directory. These are real clone and filesystem operations. They do not contact GitHub, authenticate over SSH, or exercise every supported ref/checkout arrangement. Cases: the checkout group in [cases/behavior.bats](cases/behavior.bats).
+```sh
+./tests/run packages all              # Explicit online, privileged guest tests
+./tests/run packages macos            # Includes fresh Homebrew installation
+./tests/run packages debian
+./tests/run interactive macos --online --provision --gui
+./tests/run interactive debian --online --provision
+```
 
-- **`dotfiles / shell` — 9 cases; Bash startup behavior in temporary guest homes.** Installs the links, then starts the guest's system Bash in each combination of login, interactive, or interactive-login mode and `TERM=xterm-256color`, `TERM=dumb`, or no TERM. Each shell must execute a temporary command placed in the checkout's `bin` directory by basename, produce no unexpected startup output/errors, and keep PATH stable when the profile is sourced again, with no empty PATH entries. Interactive shells use a pseudo-terminal. This proves that the startup path loads enough configuration to expose repository commands; it does not test every alias, function, export, or displayed prompt. Cases: [cases/startup.bats](cases/startup.bats), using [shell-check.sh](shell-check.sh).
+`packages` automatically enables networking and guest-only sudo in a disposable
+clone. It selects available routes for the guest platform and architecture from YAML,
+checks package-manager receipts, and repeats installation. LaTeX is excluded
+by default because the full distribution is large; select it with `--only 'LaTeX (full TeX Live)'`.
+Configuration scripts run as selected by that catalogue; this suite does not
+maintain application-specific executable checks or fixed keyboard expectations.
+Emacs configuration can report Installed; startup check failed even when its checkout succeeds;
+inspect retained installer logs for package-bootstrap errors. It does not run in routine suites or
+change baseline permissions. Failed clones are retained with the usual logs.
+Internet availability and upstream packages affect this smoke test.
 
-- **`dotfiles / full_install` — 4 cases; end-to-end testing of the bootstrap milestone.** Downloads the candidate bootstrap script from the local fixture and runs it in the non-administrator guest account's actual home, restoring relevant home state between cases. Checks preservation of a conflicting profile, the installed checkout's revision/origin/branch/ownership, no additional backups on rerun, and one interactive-login shell startup with `TERM=xterm-256color`. “Full” refers to this download → checkout → link → shell flow, not application installation or complete OS provisioning. Cases: [cases/integration.bats](cases/integration.bats).
+Interactive `--provision` requires `--online`; its banner identifies the privileged
+clone. Inside, run `./dotfiles install --backup` and choose the features yourself.
+The candidate still runs as the ordinary test user, with sudo available when needed.
+Homebrew can request its normal confirmation. No host administrator rights or host
+software installation are involved.
 
-- **`runner / processes` — 4 cases; subprocess regression tests inside the guest.** Launches controlled Python child processes through the runner to check streaming before process exit, termination of a silent timed-out child, interruption cleanup with partial logs preserved, and retention of a failed process's exit status and output. The failed-process case uses a local child that exits with status 255; it does not simulate an actual broken SSH or guest-agent connection. Cases: the processes group in [cases/harness.bats](cases/harness.bats), implemented in [helpers/harness-probe.py](helpers/harness-probe.py).
+Routine suites add focused checks using fake package-manager commands,
+real selected links, and actual UI selection, cancellation, and execution. They assert effects and
+outcomes rather than exact menu formatting, colors, or spinner frames. Dashboard
+checks cover hidden prompt input, resizing, seamless direct installation, the Org
+completion preview (wrapping, scrolling and preserving the file), and cancellation
+that stops worker children. All candidate
+behavior, including fakes, remains inside VMs. The all-links tests use `--links-only` explicitly.
 
-- **`runner / suites` — 1 case; suite scheduling/error-handling test.** Supplies controlled failing, successful, and interrupted jobs to the runner. Checks that ordinary test/setup failures allow subsequent suites to run while preserving an overall failure result, and that interruption stops scheduling further suites. This tests the project's orchestration logic, not Bats' own ability to continue after a failed test. Case: the suites group in [cases/harness.bats](cases/harness.bats).
+The standalone UI model tests are compiled on the host and executed only in the
+guests. AMD64 releases are cross-compiled; native execution is covered on ARM64.
+Installer logs are retained in each result directory as `installer-logs.tar`.
+Use `--keep` with `packages` to retain the stopped guest for investigation.
 
-- **`runner / output` — 1 case; formatter and log-processing regression tests.** Feeds synthetic pass/fail/skip events and diagnostics through the actual formatter and log writer. Checks result totals, grouped headings and platform changes, readable case labels, color/no-color modes, live-row handling, narrow-terminal truncation, and plain saved logs, including fragmented text and interrupted output. This checks whether test results are faithfully presented; it does not test dotfiles behavior. Case: the output group in [cases/harness.bats](cases/harness.bats).
+Post-install reminders live beside their features in the catalogue; platform-specific
+reminders live under the corresponding platform. Shared always-on reminders remain
+under `post_install`, and numbered heading keys set output order. Empty sections are omitted. The writer matches
+checkbox text within its heading, ignoring checked/unchecked state; changing
+text or headings adds new entries without deleting the old ones. Existing notes
+and older TODO/DONE headings are left untouched.
 
-- **`runner / vms` — 3 cases; VM lifecycle logic with mocked commands.** Injects fake Tart commands, inventory responses, and subprocesses into the real orchestration functions. Checks that cleanup failures remain visible alongside the original failure, that an unconfirmed stop is reported, and that successful guests are deleted while failed guests are retained across success, assertion, setup, transport, and stop-failure scenarios. The lifecycle simulation exercises the Debian execution path. The interactive lifecycle case also checks terminal transport selection, explicit internet/window options, retention with `--keep`, and interruption cleanup. Ordinary full-suite runs also boot and clean up real VMs, but these injected failure cases do not prove real Tart/SSH/agent behavior under every failure condition. Cases: the vms group in [cases/harness.bats](cases/harness.bats).
+### Focused desktop package checks
 
-### Repository functionality not currently tested
+```sh
+./tests/run packages macos --only 'Yabai window manager'
+./tests/run packages debian --only 'i3 desktop,Custom keyboard layout'
+```
 
-The following are major coverage gaps. Some concern historical utilities that the maintained bootstrap intentionally does not invoke; others concern application behavior after configuration has been linked. Their presence in the repository, successful linking, or a green bootstrap suite does not establish that they work on current macOS or Debian.
+The selection uses catalogue option names and includes dependencies. Omitting `--only`
+runs all available routes except LaTeX. A selected i3 script also runs a small Xvfb
+session check: real config parsing, an X11 window, workspace movement and a
+notification. Xvfb/xterm are test dependencies, not added to the user's catalogue.
+ThinkPad hardware is outside VM coverage; Debian VM execution is ARM64, while
+AMD64 package availability can be checked independently against Debian's index.
 
-- **Package installation and upgrades.** The suite does not run [os/install_applications.sh](../os/install_applications.sh), the Ubuntu/APT installer under [os/ubuntu](../os/ubuntu), the Homebrew installer under [os/os_x](../os/os_x), or the individual `os/install_*.sh` utilities. It does not establish package availability, valid repositories/taps, dependency resolution, current installer flags, repeatability, upgrades, or successful application launches. Language and development-tool setup such as Node/npm, R/RStudio, Python/Anaconda, Julia, LaTeX, Docker, Terraform, and Packer is untested. Installing prerequisites during baseline preparation is not a test of these repository installers.
+### Focused LaTeX package checks
 
-- **macOS UI preferences and default-shell setup.** [os/os_x/set_preferences.sh](../os/os_x/set_preferences.sh), the Terminal profile, and [os/os_x/change_default_bash_version.sh](../os/os_x/change_default_bash_version.sh) are not exercised. There are no checks that Dock, Finder, keyboard, browser, or other GUI settings take effect, persist after logout/reboot, or match settings currently configured manually. Tests explicitly launch system Bash; they do not change the account's default shell or test a Homebrew Bash installation.
+```sh
+./tests/run packages all --only 'LaTeX (full TeX Live)'
+```
 
-- **Linux desktop preferences and default applications.** [os/set_preferences.sh](../os/set_preferences.sh), [os/set_default_apps.sh](../os/set_default_apps.sh), and [mimeapps.list](../mimeapps.list) are not exercised. The suite does not start a desktop session or verify browser/file associations, themes, fonts, notifications, session startup, or compatibility of the older Ubuntu-specific preference commands with Debian Trixie.
+LaTeX is excluded from default package runs; opt in with `--only 'LaTeX (full TeX Live)'`.
+This online test installs the full distributions in disposable VMs, reruns the
+installer, then typesets a PDF and renders a DVI math preview. Allow several GB
+of downloads and disk space per guest. The standard macOS baseline is too small
+for full MacTeX; use a larger system volume before running its test. macOS opens
+a new terminal for MacTeX's PATH entry; the in-process smoke test adds that path because it predates install.
 
-- **Window managers, hotkeys, terminals, and desktop applications.** Relevant manifest entries for Yabai/skhd, i3, Kitty, Rofi, Polybar, Dunst, Picom/Compton, and autorandr are checked as links. The applications are not launched to parse those configurations, run bindings, arrange windows, render bars/menus, or verify accessibility permissions and supporting services. Rofi helper scripts are not invoked. A correctly linked configuration can still be invalid or unusable in its application.
+### Production architecture versus test architecture
 
-- **Physical keyboard, display, and laptop integration.** [keyboard/keyboard_setup.sh](../keyboard/keyboard_setup.sh), [os/keyboard_startup.sh](../os/keyboard_startup.sh), keyd system configuration/reloading, monitor profiles, docking, brightness, and related utilities are not tested against actual devices. In particular, linking `~/.config/keyd` does not verify installation of `/etc/keyd/default.conf` or a working keyd service. The VMs do not establish that this setup works with the machine's keyboard, monitors, dock, or power-management behavior.
+Debian's intended production machines are Intel/AMD64 ThinkPads. The local Tart
+baseline is ARM64; its identity checks describe that test image only. UI test
+binaries are built for AMD64 and ARM64 and dispatched using the guest CPU.
+Synthetic architecture tests cover both catalogue availability and executable
+selection without copying real package inventories into assertions.
 
-- **Editor and everyday application behavior.** Vim/gVim configuration files are linked, but Vim is not started and its settings, plugins, mappings, and plugin installation are not tested. Emacs installation and the desktop/client launchers are not exercised. There is no dedicated functional coverage of Git aliases, identity/signing, ignore/attribute behavior, curl settings, Readline key bindings, or Screen configuration. Git's use in bootstrap tests covers those specific checkout operations, not the rest of the Git configuration.
+The [architecture review](../docs/architecture-review.md) records AMD64 dependency
+resolution and execution of the actual AMD64 UI/parser binaries under QEMU user
+emulation. These checks supplement ARM VM tests; they do not replace native Intel
+or physical ThinkPad validation. Keep hardware-specific production behaviour even
+when a VM cannot exercise it.
 
-- **Shell features beyond startup.** Most aliases and functions in [shell/bash_aliases](../shell/bash_aliases) and [shell/bash_functions](../shell/bash_functions) are parsed or sourced but not invoked. Prompt rendering and Git-status display, completion, history/readline behavior, individual exports, macOS application aliases, logout behavior, and user-specific `~/.bash.local` customization have no dedicated behavioral tests. Optional applications being absent during startup does not prove the corresponding helpers work once those applications are installed.
+### Rejecting stale UI builds
 
-- **Personal command-line utilities and external integrations.** The actual tools in [bin](../bin), including repository checking, Emacs launching, calendar synchronization, compression/content inspection, and photo processing, are not executed. The shell test uses a disposable probe command to check PATH loading. It does not exercise those utilities' logic, bundled binaries, dependencies, network services, or authenticated accounts.
+The pre-commit hook compares staged Go sources/module files and vendored binaries
+with `os/vendor/installer-ui/BUILD.json` only when `go` is on PATH. Without Go,
+it exits successfully before invoking Python: any source/config edits can be
+committed on ordinary dotfiles machines. It never rebuilds or stages files.
+On development machines, an unchanged build needs only hashing. A commit with
+no UI files at all is allowed, so independent archive commits remain possible.
 
-- **Backup and restore of personal data.** [bin/backup](../bin/backup) and [os/install_duplicity.sh](../os/install_duplicity.sh) have no functional tests for encryption, signing, cloud uploads, retention, notifications, or restoring data. The `dotfiles / install` backup cases only check preservation of conflicting configuration during link installation; they do not validate this separate personal-data backup workflow.
+Enable the checked-in hook for a checkout with:
 
-- **System services, networking, and security-device setup.** SSH server/firewall configuration, VPN and DNS settings, YubiKey/GPG integration, mail synchronization, and server applications such as Airsonic are not provisioned or validated through the repository's scripts. No tests establish their service startup, permissions, authentication, persistence after reboot, or behavior on a real network. Test-runner SSH access to a disposable guest is separate from testing [os/server_ssh_setup.sh](../os/server_ssh_setup.sh).
+```sh
+git config core.hooksPath .githooks
+```
 
-- **Published bootstrap and first-time provisioning.** Routine suites use the local HTTP fixture and prepared accounts with prerequisite tools already installed. They do not validate the live GitHub/raw download URLs, public HTTPS/DNS behavior, private-repository credentials, or the complete path from an untouched OS image through prerequisite installation to a ready personal machine. Baseline preparation is a separate setup operation, not repeated by each full suite. Compromise of a downloaded package or image is not something a passing functional suite rules out.
+For a worktree-only setting, use `git config --worktree core.hooksPath .githooks`
+after enabling Git's `extensions.worktreeConfig` setting. The ui-layer worktree
+can enable this separately. Hooks can be bypassed; all VM test commands independently check
+the frozen candidate before starting a VM. `prepare-vms` only prepares baselines.
 
-- **Installer recovery, upgrades, and less common Git arrangements.** Existing cases cover selected conflicts and failures, not interrupted installs, full disks, permission failures during backup moves, concurrent installs, or restoring an old configuration from backups. There is no complete valid branch/tag/commit-ref matrix or coverage of every worktree/submodule arrangement. Removing obsolete links, migrating between manifest versions, uninstalling, and historical update/directory-setup utilities such as [os/update_content.sh](../os/update_content.sh) and [os/create_directories.sh](../os/create_directories.sh) are outside the current tests.
+On a mismatch, rebuild explicitly and stage the matching source and artifacts:
 
-- **Other platforms, releases, and CI environments.** The automated VM coverage is the pinned macOS 26 ARM64 and Debian Trixie ARM64 baselines. There is no corresponding matrix for Intel Macs, x86 Debian, older/newer OS releases, Ubuntu, alternative default shells, or different personal machine states. GitHub Actions execution is not configured or tested. A successful local run also does not exhaustively test guest preparation, real transport failures, host crashes, or VM recovery.
+```sh
+python3 ui/build.py /absolute/path/to/go os/vendor/installer-ui
+```
+
+If you have unstaged Go edits, decide which changes belong in the commit before
+rebuilding: a build of the working tree may not match a partially staged source.
+Manual checks are `python3 tests/check-ui-build.py` (working tree) and the same
+command with `--staged` (index). The latter honors `GIT_INDEX_FILE` too.

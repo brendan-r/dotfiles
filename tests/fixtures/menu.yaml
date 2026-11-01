@@ -1,0 +1,50 @@
+# Deliberately unrelated to the user's catalogue. Tests own these sample values.
+schema_version: 1
+post_install:
+  "1. Example tasks":
+    always:
+      - A completed task
+      - Another task
+groups:
+  dotfiles:
+    discover_dotfiles: true
+    options: {}
+
+  examples:
+    options:
+      files:
+        recommended: true
+        link_dependencies: [.sample-first, .sample-second]
+        platforms:
+          macos: {steps: [{script: os/fixture-noop.sh}]}
+          debian: {steps: [{script: os/fixture-noop.sh}]}
+      local-settings:
+        requires: [files]
+        platforms:
+          macos: {steps: [{script: os/create_bash_local.sh}]}
+          debian: {steps: [{script: os/create_bash_local.sh}]}
+      tools:
+        platforms:
+          macos: {steps: [{brew: [sample-tool]}]}
+          debian: {steps: [{apt: [sample-tool]}]}
+      later:
+        todo:
+          "2. Other tasks": [A task for an unselected feature]
+        link_dependencies: [.sample-later]
+        platforms:
+          macos: {steps: [{script: os/fixture-noop.sh}]}
+          debian: {steps: [{script: os/fixture-noop.sh}]}
+      # pending: Future work (not implemented)
+      # unreviewed: Unreviewed work (not ready)
+      folders:
+        note: Create the directories in this test fixture.
+        platforms:
+          macos: {steps: [{script: os/fixture-directories.sh}]}
+          debian: {steps: [{script: os/fixture-directories.sh}]}
+      scripts:
+        todo:
+          "1. Example tasks": [Check the scripts path]
+        platforms:
+          macos: {steps: [{script: os/link_personal_bin.sh}]}
+          debian: {steps: [{script: os/link_personal_bin.sh}]}
+

@@ -1,0 +1,231 @@
+# The menu describes installable features; dotfiles are discovered from home/.
+# Order here is menu order. Group and option names are shown in the menu.
+# Names may contain spaces and punctuation, but not commas, control characters,
+# backslashes, or wildcard characters (* and ?).
+# Omitted recommended means false.
+# No platform entry means hidden. parent indents a child; requires adds dependencies.
+# Supported steps: tap, brew, cask, apt, and standalone scripts.
+# script runs a standalone shell file from this checkout.
+
+schema_version: 1
+
+# Number TODO headings for ordering; numbers are omitted from TODO.org.
+# Keep the same number and name wherever a heading is reused.
+post_install:
+  "4. SSH keys for GitHub":
+    always:
+      - "Log in to [[https://github.com/login][GitHub]]"
+      - "Open [[https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent][GitHub's guide to creating an SSH key]]"
+      - "Create a new SSH key if needed"
+      - "Upload your public key in [[https://github.com/settings/keys][GitHub SSH settings]]"
+
+groups:
+  Sync dotfiles:
+    # Show the discovered HOME-shaped files in this group.
+    discover_dotfiles: true
+    options:
+      .bash.local:
+        link_dependencies: [.bash_profile]
+        recommended: true
+        platforms:
+          macos: {steps: [{script: os/create_bash_local.sh}]}
+          debian: {steps: [{script: os/create_bash_local.sh}]}
+
+  UX changes:
+    options:
+      Custom keyboard layout:
+        recommended: true
+        todo:
+          "8. Keyboard":
+            - "Verify the navigation layer and modifier mappings on your physical keyboard"
+        platforms:
+          debian:
+            link_dependencies: [.config/keyd]
+            steps: [{apt: [keyd]}, {script: os/configure_keyboard_debian.sh}]
+          macos:
+            todo:
+              "1. OS Permissions":
+                - "Grant Karabiner Input Monitoring and its driver permission"
+                - "Grant skhd Accessibility, then run skhd --start-service"
+                - "After changing the Karabiner configuration directory link, log out and back in to reload it"
+            link_dependencies: [.skhdrc, .config/karabiner]
+            steps: [{tap: asmvik/formulae}, {brew: [skhd]}, {cask: [karabiner-elements]}, {script: os/register_skhd_service.sh}]
+
+      i3 desktop:
+        recommended: true
+        platforms:
+          debian:
+            todo:
+              "5. Desktop":
+                - "Log out and choose the i3 X11 session at the login screen, or use startx from a console"
+                - "Test Super-T for a terminal, Control-Space for Rofi, Super-number for workspaces, and Super-Backspace to dismiss notifications"
+                - "Test brightness on your laptop; if light reports permission denied, add your account to the video group and log in again"
+                - "Emacs and Firefox shortcuts require those application selections"
+                - "On the X200T, test the rotation button and stylus alignment; touchpad controls detect available devices"
+                - "On each ThinkPad, test audio, suspend/resume, battery reporting and external displays"
+            steps:
+              - script: os/install_i3.sh
+            link_dependencies: [.xinitrc, .config/i3, .config/rofi, .local/share/rofi, .config/polybar, .config/dunst, .config/picom, .config/autorandr]
+
+      Yabai window manager:
+        link_dependencies: [.yabairc, .skhdrc]
+        recommended: true
+        platforms:
+          macos:
+            steps: [{tap: asmvik/formulae}, {brew: [yabai, skhd]}, {script: os/register_yabai_services.sh}]
+            todo:
+              "1. OS Permissions":
+                - "Grant Yabai and skhd Accessibility in System Settings, then run yabai --start-service and skhd --start-service"
+                - "If either service was already running, use its --restart-service command to reload configuration"
+                - "Test window focus, movement and resizing; this setup uses standard Accessibility permissions and does not install the SIP-dependent scripting addition"
+
+      macOS desktop preferences and background:
+        platforms:
+          macos:
+            steps: [{script: os/configure_macos_preferences.sh}]
+            todo:
+              "5. Desktop":
+                - "Log out and back in to activate Dock, motion and workspace keyboard preferences"
+                - "Create the desired desktops in Mission Control, then test Control-number switching with your keyboard mappings"
+                - "In Wallpaper settings, enable Show on all Spaces if you want the same grey on every desktop"
+
+  Install languages:
+    options:
+      R:
+        recommended: true
+        platforms:
+          macos: {steps: [{brew: [r]}]}
+          debian: {steps: [{apt: [r-base, r-base-dev]}]}
+
+  Install CLI tools and config:
+    options:
+      Personal /bin/ scripts:
+        recommended: true
+        todo:
+          "7. Shell":
+            - "Ensure ~/bin is on PATH; Bash configuration already adds the checkout scripts"
+        platforms:
+          macos: {steps: [{script: os/link_personal_bin.sh}]}
+          debian: {steps: [{script: os/link_personal_bin.sh}]}
+
+      Use GNU Bash as the default shell:
+        recommended: true
+        todo:
+          "7. Shell":
+            - "Open a new login session to use GNU Bash"
+        platforms:
+          macos:
+            steps: [{brew: [bash]}, {script: os/set_default_bash.sh}]
+          debian:
+            steps: [{apt: [bash]}, {script: os/set_default_bash.sh}]
+
+      Pandoc:
+        platforms:
+          macos: {steps: [{brew: [pandoc]}]}
+          debian: {steps: [{apt: [pandoc]}]}
+
+      GnuPG (GPG):
+        platforms:
+          macos: {steps: [{brew: [gnupg]}]}
+          debian: {steps: [{apt: [gnupg]}]}
+
+      LaTeX (full TeX Live):
+        platforms:
+          macos:
+            steps: [{cask: [mactex-no-gui]}]
+            todo:
+              "7. Shell":
+                - Open a new terminal to put MacTeX commands on PATH
+          debian:
+            steps: [{apt: [texlive-full, dvipng]}]
+
+  Install applications:
+    options:
+      Emacs:
+        recommended: true
+        platforms:
+          macos: {architectures: [arm64], steps: [{tap: d12frosted/emacs-plus}, {cask: [emacs-plus-app]}]}
+          debian: {steps: [{apt: [emacs-gtk, emacs-el]}]}
+
+      Emacs configuration:
+        parent: Emacs
+        requires: [Emacs]
+        recommended: true
+        todo:
+          "2. Emacs":
+            - "Open and test Emacs; allow Elpaca to finish installing packages and inspect any startup errors"
+            - "For Jupyter support, follow [[file:~/.emacs.d/scripts/jupyter/jupyter.org][the Jupyter setup guide]] and run its setup-jupyter.sh script"
+        platforms:
+          macos: {architectures: [arm64], steps: [{brew: [pkgconf, enchant]}, {script: os/configure_emacs.sh}]}
+          debian: {steps: [{apt: [build-essential, pkgconf, libenchant-2-dev, hunspell-en-us]}, {script: os/configure_emacs.sh}]}
+
+      Firefox:
+        recommended: true
+        platforms:
+          macos: {steps: [{cask: [firefox]}]}
+          debian: {steps: [{script: os/install_firefox.sh}]}
+
+      Spotify:
+        recommended: true
+        todo:
+          "3. Logins":
+            - "Log in to Spotify"
+        platforms:
+          macos: {steps: [{cask: [spotify]}]}
+          debian: {architectures: [amd64], steps: [{script: os/install_spotify.sh}]}
+
+      Signal Desktop:
+        recommended: true
+        todo:
+          "3. Logins":
+            - "Link Signal Desktop to your phone"
+        platforms:
+          macos: {steps: [{cask: [signal]}]}
+          debian: {architectures: [amd64], steps: [{script: os/install_signal_desktop.sh}]}
+
+      Nextcloud Desktop:
+        recommended: true
+        todo:
+          "3. Logins":
+            - "Log in to Nextcloud"
+        platforms:
+          macos: {steps: [{cask: [nextcloud]}]}
+          debian: {steps: [{apt: [nextcloud-desktop]}]}
+
+      KeePassXC:
+        recommended: true
+        platforms:
+          macos: {steps: [{cask: [keepassxc]}]}
+          debian: {steps: [{apt: [keepassxc]}]}
+
+      VLC:
+        platforms:
+          macos: {steps: [{cask: [vlc]}]}
+          debian: {steps: [{apt: [vlc]}]}
+
+      Anki:
+        platforms:
+          macos: {steps: [{cask: [anki]}]}
+          debian: {architectures: [amd64, arm64], steps: [{script: os/install_anki.sh}]}
+
+      RStudio Desktop:
+        requires: [R]
+        platforms:
+          macos: {steps: [{cask: [rstudio]}]}
+          debian: {architectures: [amd64], steps: [{script: os/install_rstudio_desktop.sh}]}
+
+      Proton VPN client:
+        recommended: false
+        todo:
+          "3. Logins":
+            - "Log in to Proton VPN and complete permission setup"
+        platforms:
+          macos: {steps: [{cask: [protonvpn]}]}
+          debian: {architectures: [amd64], steps: [{script: os/install_proton_vpn.sh}]}
+
+  Misc:
+    options:
+      Create personal directories:
+        platforms:
+          macos: {steps: [{script: os/create_personal_directories.sh}]}
+          debian: {steps: [{script: os/create_personal_directories.sh}]}

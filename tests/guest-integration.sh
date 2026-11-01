@@ -11,6 +11,7 @@ export BATS_TEST_NAME_PREFIX="[$6] "
 completion=$7
 # The outer host terminal decides; the guest transport always has a PTY.
 export DOTFILES_TEST_INTERACTIVE=${8:-0} DOTFILES_TEST_COLUMNS=${9:-80}
+export DOTFILES_TEST_FEATURES=${10:-}
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 /usr/bin/curl -qfsS --max-time 30 "$DOTFILES_FIXTURE_URL/candidate.tar.gz" -o "$stage/candidate.tar.gz"
@@ -18,14 +19,26 @@ mkdir "$stage/candidate with spaces"
 tar -xzf "$stage/candidate.tar.gz" -C "$stage/candidate with spaces"
 DOTFILES_CANDIDATE=$(cd -P "$stage/candidate with spaces" && pwd)
 export DOTFILES_CANDIDATE
-case "$mode" in unit|integration) ;; *) echo "Unknown guest suite: $mode" >&2; exit 2 ;; esac
+case "$mode" in unit|integration|packages) ;; *) echo "Unknown guest suite: $mode" >&2; exit 2 ;; esac
 formatter=tap
 if [ "$format" = pretty ]; then formatter="$DOTFILES_CANDIDATE/tests/format-pretty"; fi
 cases=("$DOTFILES_CANDIDATE/tests/cases/behavior.bats" "$DOTFILES_CANDIDATE/tests/cases/startup.bats")
 if [ "$mode" = integration ]; then cases+=("$DOTFILES_CANDIDATE/tests/cases/integration.bats"); fi
-cases+=("$DOTFILES_CANDIDATE/tests/cases/harness.bats")
+cases+=("$DOTFILES_CANDIDATE/tests/cases/menu-inventory.bats" "$DOTFILES_CANDIDATE/tests/cases/todo.bats" "$DOTFILES_CANDIDATE/tests/cases/keyboard-backups.bats" "$DOTFILES_CANDIDATE/tests/cases/downloads.bats" "$DOTFILES_CANDIDATE/tests/cases/setup.bats" "$DOTFILES_CANDIDATE/tests/cases/firefox.bats" "$DOTFILES_CANDIDATE/tests/cases/harness.bats" "$DOTFILES_CANDIDATE/tests/cases/menu.bats")
+
+# Real downloads are an explicit, separate suite, not part of routine checks.
+if [ "$mode" = packages ]; then
+    cases=("$DOTFILES_CANDIDATE/tests/cases/packages.bats")
+fi
 code=0
 /bin/bash "$DOTFILES_CANDIDATE/tests/vendor/bats-core/bin/bats" --timing --print-output-on-failure \
     --formatter "$formatter" "${cases[@]}" || code=$?
+# Retain installer logs even when Bats suppresses successful-case output.
+mkdir -p "$completion.logs"
+for directory in "${TMPDIR:-/tmp}"/dotfiles-install.*; do
+    [ -d "$directory" ] || continue
+    cp -R "$directory" "$completion.logs/"
+done
+sync
 printf '%s\n' "$code" > "$completion"
 exit "$code"

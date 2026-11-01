@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "title": "Choose what to install",
+  "groups": [{"id": "config", "label": "Configuration"}, {"id": "apps", "label": "Applications"}],
+  "items": [
+    {"id": "shell", "label": "Shell files", "group": "config", "status": "ready", "selected": true,
+     "options": [{"id": "profile", "label": ".bash_profile"}, {"id": "rc", "label": ".bashrc"}]},
+    {"id": "editor", "label": "Editor", "group": "apps", "status": "ready"},
+    {"id": "editor-config", "label": "Editor configuration", "group": "apps", "parent": "editor", "requires": ["editor"], "status": "ready"},
+    {"id": "future", "label": "Future feature", "group": "apps", "status": "planned", "note": "No installation route yet."}
+  ]
+}

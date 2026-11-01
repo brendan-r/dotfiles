@@ -1,0 +1,52 @@
+{
+  "toolchain": "go version go1.27.3 darwin/arm64",
+  "CGO_ENABLED": "0",
+  "flags": [
+    "-trimpath",
+    "-buildvcs=false",
+    "-ldflags=-s -w"
+  ],
+  "modules": [
+    "github.com/brendan-r/installer-ui",
+    "charm.land/bubbletea/v2 v2.0.2",
+    "github.com/aymanbagabas/go-udiff v0.2.0",
+    "github.com/bits-and-blooms/bitset v1.24.4",
+    "github.com/charmbracelet/colorprofile v0.4.2",
+    "github.com/charmbracelet/ultraviolet v0.0.0-20260303162955-0b88c25f3fff",
+    "github.com/charmbracelet/x/ansi v0.11.7",
+    "github.com/charmbracelet/x/exp/golden v0.0.0-20241212170349-ad4b7ae0f25f",
+    "github.com/charmbracelet/x/exp/ordered v0.1.0",
+    "github.com/charmbracelet/x/term v0.2.2",
+    "github.com/charmbracelet/x/termios v0.1.1",
+    "github.com/charmbracelet/x/vt v0.1.0",
+    "github.com/charmbracelet/x/windows v0.2.2",
+    "github.com/clipperhouse/displaywidth v0.11.0",
+    "github.com/clipperhouse/stringish v0.1.1",
+    "github.com/clipperhouse/uax29/v2 v2.7.0",
+    "github.com/creack/pty v1.1.24",
+    "github.com/lucasb-eyer/go-colorful v1.4.0",
+    "github.com/mattn/go-runewidth v0.0.23",
+    "github.com/muesli/cancelreader v0.2.2",
+    "github.com/rivo/uniseg v0.4.7",
+    "github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e",
+    "golang.org/x/exp v0.0.0-20231006140011-7918f672742d",
+    "golang.org/x/sync v0.19.0",
+    "golang.org/x/sys v0.41.0"
+  ],
+  "source_sha256": {
+    "cmd/installer-ui/main.go": "b52f6630461bc759a420d2a3e5262ef709ca2941d4beb6a74374ec9f70603450",
+    "completion.go": "92f4cd1ec79ada884d248f5b60253b3915f1b90cbdaec608b0e17eee1a44511a",
+    "dashboard.go": "86915f2e1cc2cd0e37db7be1835eec68430920e09075195449910cd184041869",
+    "go.mod": "4a3980f076e292a7c5b097d23a0df898943823dd133ca094feabf30433db2c82",
+    "go.sum": "4e4b6a6cd5eefd70200a02c3f155cf8666ef2c539f32cb4cca66912979a2e9e0",
+    "layout.go": "dd8b23ee04c71b200eceeeba654e37b4bb5f8a01e2e7a4e8218e8892eec06c33",
+    "model.go": "ef6f5e1eb1e7bd6c2162dfcb335bb31a25439a54fc736333d431eaadc3495714",
+    "model_test.go": "f3b5936b7cd3faf5f82530213187a345bba591757bc09551f7356dd629d4228d"
+  },
+  "sha256": {
+    "installer-ui_darwin_arm64": "8e5ff061c87234457540fd1c1d49130f55dfa8a59dac3d53f951f4d52d24457f",
+    "installer-ui_darwin_amd64": "1b06bbff4d92d0be87f6c8daa6cec5adaec9a62cb1ddfcbe8e839df08c5c1ecd",
+    "installer-ui_linux_arm64": "76b9ffb49d3f48e98ae3a0a69ce1657e44f6231c75cc3cb42c74b593f93ca0d4",
+    "installer-ui_linux_amd64": "5a995efd246ac309f879fd7b163df1a07fa0ad67edb0b2316aaf410dd72cdb67"
+  }
+}

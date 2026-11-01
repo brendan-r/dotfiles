@@ -38,3 +38,7 @@ function runner__vms__success_deletes_guest_and_failures_retain_it { # @test
 function runner__vms__interactive_exit_keep_and_interrupt_clean_up_guest { # @test
     python3 "$DOTFILES_CANDIDATE/tests/helpers/harness-probe.py" interactive_lifecycle
 }
+
+function runner__vms__early_launch_failure_reports_cause_and_stopped_cleanup_succeeds { # @test
+    python3 "$DOTFILES_CANDIDATE/tests/helpers/harness-probe.py" failed_vm_start
+}
