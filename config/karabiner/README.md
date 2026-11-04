@@ -1,5 +1,0 @@
-# Karabiner configuration
-
-Captured from the existing macOS configuration without changing mappings, device matching, or enabled states. Caps Lock becomes right Control; skhd implements the navigation layer. Left Arrow becomes left Control in the existing keyboard entry, used for Apple keyboards without right Control. The external keyboard retains its device-specific Command/Option and Print Screen mappings.
-
-The main dotfile sync links the entire configuration directory from `home/macos/.config/karabiner`. Karabiner watches its parent directory, so linking only `karabiner.json` does not reliably reload changes. Existing directories are preserved by `--backup` rather than merged. Log out and back in after changing the link so Karabiner starts watching the new location. Settings changed in the Karabiner GUI can modify the checkout. macOS permission grants remain manual and are recorded in TODO.org. skhd configuration is symlinked separately. Do not replace the current mappings with tap-for-Escape behaviour.
