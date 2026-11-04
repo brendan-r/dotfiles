@@ -13,7 +13,7 @@ First, install the prerequisites if needed:
 Then paste this into your terminal as your normal user, without `sudo`:
 
 ```sh
-( script=$(mktemp) && trap 'rm -f "$script"' EXIT && curl -qfsSL https://raw.githubusercontent.com/brendan-r/dotfiles/master/dotfiles -o "$script" && /bin/bash "$script" bootstrap )
+( script=$(curl -qfsSL https://raw.githubusercontent.com/brendan-r/dotfiles/master/dotfiles) && /bin/bash -c "$script" -- bootstrap )
 ```
 
 ## Run again

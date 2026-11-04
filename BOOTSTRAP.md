@@ -15,11 +15,12 @@ On a new machine, download the bootstrap script, create a normal Git clone, and
 open the menu:
 
 ```bash
-( script=$(mktemp) && trap 'rm -f "$script"' EXIT && curl -qfsSL https://raw.githubusercontent.com/brendan-r/dotfiles/master/dotfiles -o "$script" && /bin/bash "$script" bootstrap )
+( script=$(curl -qfsSL https://raw.githubusercontent.com/brendan-r/dotfiles/master/dotfiles) && /bin/bash -c "$script" -- bootstrap )
 ```
 
-The download must succeed before the script runs. Using a temporary file keeps
-terminal input available for the interactive installer; it is removed on exit.
+The script is held in memory and runs only if the download succeeds. An interrupted
+download runs nothing. Terminal input stays available for the interactive installer,
+and the variable is discarded when the command finishes.
 
 Run without `sudo`. The default destination is `~/projects/dotfiles`, with an HTTPS
 origin and the `master` branch checked out. `--directory`, `--repo`, and `--ref`
