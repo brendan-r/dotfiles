@@ -507,7 +507,7 @@ interrupted() {
 
 execute_plan() {
 
-    local id index feature brew_prefix
+    local id index feature brew_prefix failure_detail
 
     # Keep logs outside HOME so a selected .local link cannot redirect them.
     run_directory=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-install.XXXXXX")
@@ -585,7 +585,16 @@ execute_plan() {
         else
             results[index]='Failed'
             if [ "$operation_state" = Working ]; then
-                record_operation Failed 'The command returned a nonzero exit status. See the log for its error.' \
+                # Keep the actual error in the completion screen and saved summary.
+                # Bound noisy command output; the full log remains linked below it.
+                failure_detail=$(tail -n 15 "$current_log")
+                if [ -n "$failure_detail" ]; then
+                    failure_detail=$(printf 'Recent command output:\n%s' "$failure_detail")
+                else
+                    failure_detail='The command failed without writing any output to its log.'
+                fi
+
+                record_operation Failed "$failure_detail" \
                     'Resolve the reported error, then rerun the installer and select this item.'
             fi
             printf '✗ Failed. Recent output:\n' >&2

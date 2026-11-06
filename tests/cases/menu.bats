@@ -66,10 +66,20 @@ function menu__actions__conflicts_preserve_originals_and_keep_completed_packages
 
     fake_packages
     printf 'original\n' > "$HOME/.sample-second"
+    export DOTFILES_UI_DIRECTORY="$case_root/dashboard"
+    mkdir "$DOTFILES_UI_DIRECTORY"
 
     expect_failure feature_install --only tools,files
     [ -f "$DOTFILES_FAKE_PACKAGES/sample-tool" ]
     [ "$(cat "$HOME/.sample-second")" = original ]
+
+    # The completion screen and retained summary must explain the conflict.
+    detail=$(/bin/bash "$repo/os/yq.sh" -r '.steps[-1].detail' "$DOTFILES_UI_DIRECTORY/state.json")
+    [[ "$detail" == *'Conflicting paths:'* ]]
+    [[ "$detail" == *"$HOME/.sample-second"* ]]
+    [[ "$detail" == *'Resolve conflicts or rerun with --backup.'* ]]
+    grep -Fq "$HOME/.sample-second" "$DOTFILES_UI_DIRECTORY/summary"
+    grep -Fq 'Resolve conflicts or rerun with --backup.' "$DOTFILES_UI_DIRECTORY/summary"
 
     feature_install --only files --backup
     saved=$(find "$HOME/.local/state/dotfiles/backups" -name .sample-second)
