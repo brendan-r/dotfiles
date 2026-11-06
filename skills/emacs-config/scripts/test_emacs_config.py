@@ -104,7 +104,10 @@ class PureTests(unittest.TestCase):
             self.assertNotIn("LIBRARY_PATH", os.environ)
         with mock.patch.dict(os.environ, {"LIBRARY_PATH": "/explicit/lib"}):
             env = ec.child_environment(self.root / "second", self.root / "socket", bundle)
-            self.assertEqual(env["LIBRARY_PATH"], "/explicit/lib")
+            self.assertEqual(env["LIBRARY_PATH"], "/explicit/lib:/bundle/lib")
+        with mock.patch.dict(os.environ, {"LIBRARY_PATH": ""}, clear=True):
+            env = ec.child_environment(self.root / "third", self.root / "socket", bundle)
+            self.assertEqual(env["LIBRARY_PATH"], "")
 
     def test_gui_requires_approval_before_any_launch(self):
         with self.assertRaisesRegex(ValueError, "approved"):

@@ -249,6 +249,12 @@ def child_environment(run, socket_dir, bundle=None):
     # so neither source can redirect HOME, caches, or server connections.
     env = dict((bundle or {}).get("defaults", {}))
     env.update(os.environ)
+    # Apple's Python launcher may inject LIBRARY_PATH=/usr/local/lib.  Keep
+    # caller paths first, but retain the selected Emacs build's compiler paths.
+    caller_lib = os.environ.get("LIBRARY_PATH")
+    bundle_lib = (bundle or {}).get("defaults", {}).get("LIBRARY_PATH")
+    if caller_lib and bundle_lib:
+        env["LIBRARY_PATH"] = os.pathsep.join((caller_lib, bundle_lib))
     env = {k: v for k, v in env.items() if k not in CONNECTION_ENV}
     paths = {"HOME": run / "home", "XDG_CONFIG_HOME": run / "home/.config",
              "XDG_CACHE_HOME": run / "cache", "XDG_DATA_HOME": run / "data",

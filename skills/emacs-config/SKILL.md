@@ -16,8 +16,9 @@ from this skill directory; each subcommand has its own `--help`.
    Use `--fixture-dir Nextcloud/org/career` or files under `fixtures/home/` for
    required personal-data fixtures. Never symlink fixtures to live personal data.
    On macOS, `prepare` records the selected app bundle's `LSEnvironment` defaults
-   for child processes (including compiler library paths). Explicit caller
-   variables take precedence; private HOME and socket settings always win.
+   for child processes (including compiler library paths). Caller variables take
+   precedence; nonempty `LIBRARY_PATH` entries precede the bundle's entries so
+   both compiler search paths remain available. Private HOME and socket settings always win.
    Use `--no-bundle-env` to test a CLI launch without those GUI defaults.
    Prepare a new session after changing the app build or its launch defaults.
 
