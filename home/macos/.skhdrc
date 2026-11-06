@@ -193,8 +193,11 @@ lctrl - e : emacsclient -n -c
 
 lctrl + shift - r : yabai -m space --balance
 
-# Close focussed window (mimicing 'standard' OS shortcut)
-lctrl - p : skhd --key "cmd - w"
+# Close the focused window, including when Emacs is showing a terminal.
+lctrl - p [
+      *       : skhd --key "cmd - w"
+      "Emacs" : /opt/homebrew/bin/emacsclient --eval '(delete-frame (selected-frame))'
+]
 lctrl - f : yabai -m window --toggle zoom-fullscreen
 
 # Allow a window to float
