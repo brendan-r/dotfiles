@@ -93,6 +93,22 @@ rctrl + cmd + shift - 0x29 : skhd -k "shift + cmd - end"
 
 
 # Alt versions
+rctrl + alt - i [
+      *       : skhd -k "cmd - up"
+      "Emacs" : skhd -k "alt - up"
+]
+rctrl + alt - k [
+      *       : skhd -k "cmd - down"
+      "Emacs" : skhd -k "alt - down"
+]
+rctrl + alt - l [
+      *       : skhd -k "cmd - right"
+      "Emacs" : skhd -k "alt - right"
+]
+rctrl + alt - j [
+      *       : skhd -k "cmd - left"
+      "Emacs" : skhd -k "alt - left"
+]
 rctrl + alt - i : skhd -k "alt - up"
 rctrl + alt - k : skhd -k "alt - down"
 rctrl + alt - j : skhd -k "alt - left"
@@ -164,10 +180,6 @@ lctrl + shift - k : yabai -m window --warp south
 lctrl + shift - i : yabai -m window --warp north
 lctrl + shift - l : yabai -m window --warp east
 
-
-# Go to a particular space
-# Note: You have to do this via the OS. See: https://apple.stackexchange.com/a/362615
-# You may also want to 'reduce motion'
 
 # Resizing
 
