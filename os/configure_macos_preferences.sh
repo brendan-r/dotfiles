@@ -41,6 +41,9 @@ set_desktop_preferences() {
     /usr/bin/defaults write com.apple.WindowManager StandardHideWidgets -bool true
     /usr/bin/defaults write com.apple.WindowManager StageManagerHideWidgets -bool true
 
+    # Don't show random files all over the desktop/wallpaper
+    defaults write com.apple.finder CreateDesktop -bool false
+
 }
 
 #  - - -  Motion  - - -
