@@ -1,0 +1,58 @@
+Things you still have to do on your dotfiles, to get your new computer set-up:
+
+- [X] Install proton_vpn (and add a shell script for it)
+- [X] Get rid of the wallpaper
+- [X] Make kitty the default terminal, set colors
+- [X] Add the extra keys you're using now
+  - [X] Escape
+  - [X] N for =+
+- [X] Add misc installs file nextcloud-desktop keepassxc anki
+- [X] Maybe slow-down the rate of auto-repeat on the keys!
+- [X] Figure out the Nextcloud/Gnome keyring stuff
+- [X] Polybar -- remove the language (not useful)
+- [ ] Map the media keys
+- [ ] Push up the changes to your dotfiles
+
+
+* Stuff which might improve graphics
+
+# If you are using an old thinkpad (you often are!) this should improve rendering a lot
+sudo apt update && sudo apt install xserver-xorg-video-intel mesa-vulkan-drivers
+
+sudo apt update
+sudo apt install xserver-xorg-video-intel
+
+
+** You may want to paste this
+
+to: /etc/X11/xorg.conf.d/20-intel.conf
+
+#+begin_src config
+Section "Device"
+    Identifier "Intel Graphics"
+    Driver "intel"
+    BusID "PCI:0:2:0"
+    Option "DRI" "2"
+    Option "TearFree" "true"
+EndSection
+#+end_src
+
+
+
+
+** Theming
+
+sudo apt install lxappearance gnome-themes-extra
+
+
+```from gemini
+Install LXAppearance: This is the standard "Swiss Army knife" for theming in i3.
+
+    sudo apt install lxappearance gnome-themes-extra
+
+Apply a Unified Theme:
+
+    Open lxappearance from your terminal.
+    Select Adwaita (the default GNOME theme) or Adwaita-dark.
+    Click Apply. This will write the necessary settings to ~/.config/gtk-3.0/settings.ini and ~/.gtkrc-2.0, covering almost all your apps.
+```

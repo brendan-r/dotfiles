@@ -204,8 +204,28 @@ bindsym XF86Launch6 exec bash $HOME/projects/dotfiles/bin/rotate_stylus_and_scre
 # I'd guess this is bring up the onscreen keyboard
 # bindsym XF86Launch7
 # I'd guess this is lock the screen
-bindsym XF86Launch8 exec bash -c 'i3lock --color=000000'
+# bindsym XF86Launch8 exec bash -c 'i3lock --color=000000'
+# bindsym $mod+Control+l exec bash -c 'i3lock --color=000000'
+# exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork --colour 000000
 
+# ------------------------------
+# Power & lock setup
+# ------------------------------
+
+# Start XFCE power manager (handles suspend, lid close, AC/battery)
+exec --no-startup-id xfce4-power-manager
+
+# Start network manager applet for VPN/tray
+exec --no-startup-id nm-applet
+
+# Automatic idle lock using i3lock
+# exec --no-startup-id xss-lock -- i3lock -c 000000
+
+# Keyboard shortcuts for manual lock
+bindsym $mod+Control+l exec i3lock -c 000000
+bindsym XF86Launch8 exec i3lock -c 000000
+
+# -------------------------------------------------
 
 # Media player controls
 bindsym XF86AudioPlay exec playerctl play
@@ -284,9 +304,6 @@ exec_always --no-startup-id $HOME/.config/polybar/launch.sh
 # autorandr has files in ~/.config
 exec_always --no-startup-id autorandr --change
 
-
-bindsym $mod+Control+l exec bash -c 'i3lock --color=000000'
-exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork --colour 000000
 
 
 # Colours -------------------------------------------------------------------
