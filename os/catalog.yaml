@@ -90,11 +90,12 @@ groups:
         recommended: true
         platforms:
           macos:
-            steps: [{tap: asmvik/formulae}, {brew: [yabai, skhd]}, {script: os/register_yabai_services.sh}]
+            steps: [{tap: asmvik/formulae}, {tap: felixkratz/formulae}, {brew: [yabai, skhd, felixkratz/formulae/borders]}, {script: os/register_yabai_services.sh}]
             todo:
               "1. OS Permissions":
                 - "Grant Yabai and skhd Accessibility in System Settings, then run yabai --start-service and skhd --start-service"
                 - "If either service was already running, use its --restart-service command to reload configuration"
+                - "Check that JankyBorders highlights the focused window after Yabai starts"
                 - "Test window focus, movement and resizing; this setup uses standard Accessibility permissions and does not install the SIP-dependent scripting addition"
 
       macOS desktop preferences and background:
