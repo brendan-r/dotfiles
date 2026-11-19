@@ -136,6 +136,13 @@ dependencies before executing the plan. TODO entries are processed at the end.
 
 On Debian, Firefox is installed from Mozilla's signed APT repository. An
 existing Firefox ESR installation is retained and may use a different profile.
+The optional Firefox configuration links `os/firefox/user.js` into each existing
+installation's default profile. On a fresh install it initializes the profile
+headlessly. Restart Firefox if it was already running. An existing `user.js` is
+a conflict; `--backup` preserves it, but does not merge its preferences. Firefox
+reapplies these preferences on each start. Remove the link and reset the
+preferences in `about:config` to undo them.
+The full-screen setting also confines website video full-screen to the window.
 
 The macOS desktop-preferences option also sets the background from the PNG in
 the checkout. Keep that checkout in place so macOS can continue to find it.

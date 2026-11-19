@@ -184,6 +184,14 @@ groups:
           macos: {steps: [{cask: [firefox]}]}
           debian: {steps: [{script: os/install_firefox.sh}]}
 
+      Firefox configuration:
+        parent: Firefox
+        requires: [Firefox]
+        recommended: false
+        platforms:
+          macos: {steps: [{script: os/configure_firefox.sh}]}
+          debian: {steps: [{script: os/configure_firefox.sh}]}
+
       Spotify:
         recommended: true
         todo:
