@@ -14,6 +14,8 @@ backup=''
 status_only=false
 selective=false
 requested=()
+mapping_sources=()
+mapping_targets=()
 
 # Selection is explicit: an empty selection must never mean "link everything".
 while [ "$#" -gt 0 ]; do
@@ -25,6 +27,12 @@ while [ "$#" -gt 0 ]; do
         --status)
             status_only=true
             shift
+            ;;
+        --mapping)
+            [ "$#" -ge 3 ] || { echo 'A mapping requires a source and target.' >&2; exit 2; }
+            mapping_sources+=("$2")
+            mapping_targets+=("$3")
+            shift 3
             ;;
         --selected)
             selective=true
@@ -127,7 +135,25 @@ legacy_link() {
 #  - - -  Resolve the catalog before inspecting or changing destinations  - - -
 
 # Command substitution preserves parser failures; process substitution would not.
-manifest=$(/bin/bash "$root/os/catalog_links.sh" "$root" "$os")
+if [ "${#mapping_sources[@]}" -gt 0 ]; then
+    # Dynamic profile destinations are not part of the static HOME inventory.
+    # Limit this internal mapping to the checked-in Firefox preferences file.
+    manifest=''
+    for ((mapping_index = 0; mapping_index < ${#mapping_sources[@]}; mapping_index++)); do
+        mapping_source=${mapping_sources[$mapping_index]}
+        mapping_target=${mapping_targets[$mapping_index]}
+        [ "$mapping_source" = os/firefox/user.js ] || { echo 'Invalid mapping source.' >&2; exit 2; }
+        case "$mapping_target" in
+            ''|/*|*/|*//*|.|..|./*|../*|*/./*|*/../*|*/.|*/..|*\\*|*[[:cntrl:]]*)
+                echo 'Invalid mapping target.' >&2
+                exit 2
+                ;;
+        esac
+        manifest="${manifest:+$manifest$'\n'}dynamic"$'\t'"$mapping_source"$'\t'"$mapping_target"
+    done
+else
+    manifest=$(/bin/bash "$root/os/catalog_links.sh" "$root" "$os")
+fi
 
 errors=0
 all_present=true
