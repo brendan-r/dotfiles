@@ -63,9 +63,27 @@ groups:
                 - "Emacs and Firefox shortcuts require those application selections"
                 - "On the X200T, test the rotation button and stylus alignment; touchpad controls detect available devices"
                 - "On each ThinkPad, test audio, suspend/resume, battery reporting and external displays"
+                - "Configure XFCE Screensaver and Power Manager, then test manual lock, idle lock and lock before suspend or lid close"
+                - "Verify Nextcloud credential persistence and physical media keys; adjust keyboard repeat if needed"
             steps:
               - script: os/install_i3.sh
             link_dependencies: [.xinitrc, .config/i3, .config/rofi, .local/share/rofi, .config/polybar, .config/dunst, .config/picom, .config/autorandr]
+
+      GTK appearance tools:
+        platforms:
+          debian:
+            steps: [{apt: [lxappearance, gnome-themes-extra]}]
+            todo:
+              "5. Desktop":
+                - "Use LXAppearance to choose an Adwaita GTK theme if desired"
+
+      Fingerprint reader:
+        platforms:
+          debian:
+            steps: [{apt: [fprintd, libpam-fprintd]}]
+            todo:
+              "1. OS Permissions":
+                - "Check whether the fingerprint sensor is supported, run fprintd-enroll, and verify authentication and password fallback"
 
       Yabai window manager:
         link_dependencies: [.yabairc, .skhdrc]

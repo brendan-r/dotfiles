@@ -16,7 +16,7 @@ fi
 
 sudo apt-get update --error-on=any
 sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    i3 rofi polybar dunst picom autorandr i3lock xss-lock \
+    i3 rofi polybar dunst picom autorandr xfce4-power-manager xfce4-screensaver \
     wmctrl network-manager-gnome light xserver-xorg xinit dbus-x11 \
     kitty dex hsetroot gnome-keyring mate-polkit alsa-utils playerctl \
     xinput xserver-xorg-input-wacom pipewire-audio libnotify-bin \

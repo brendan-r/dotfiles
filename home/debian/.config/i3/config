@@ -15,6 +15,10 @@ exec --no-startup-id dex --autostart --environment i3 --search-paths ~/.config/a
 # Use a compositor
 exec --no-startup-id picom -b
 
+# XFCE owns power management and locking in this session.
+exec --no-startup-id xfce4-screensaver
+exec --no-startup-id xfce4-power-manager
+
 # Start the secrets service running
 exec --no-startup-id gnome-keyring-daemon --start --components=secrets
 
@@ -208,7 +212,7 @@ bindsym XF86Launch6 exec bash ~/.config/i3/rotate-tablet.sh
 # I'd guess this is bring up the onscreen keyboard
 # bindsym XF86Launch7
 # I'd guess this is lock the screen
-bindsym XF86Launch8 exec bash -c 'i3lock --color=000000'
+bindsym XF86Launch8 exec xfce4-screensaver-command --lock
 
 
 # Media player controls
@@ -284,8 +288,7 @@ exec_always --no-startup-id $HOME/.config/polybar/launch.sh
 exec_always --no-startup-id autorandr --change
 
 
-bindsym $mod+Control+l exec bash -c 'i3lock --color=000000'
-exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork --colour 000000
+bindsym $mod+Control+l exec xfce4-screensaver-command --lock
 
 
 # Colours -------------------------------------------------------------------
